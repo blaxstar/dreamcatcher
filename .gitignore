@@ -1,0 +1,30 @@
+# node / typescript
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+*.tsbuildinfo
+.env
+.env.*
+
+# crit
+data/run/
+
+# editors / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+*.log
+
+# dreamcatcher
+credentials.json
+*.db
+*.db-shm
+*.db-wal
+jobs_today.md
+token.json
+
+# runtime state
+.cache.json

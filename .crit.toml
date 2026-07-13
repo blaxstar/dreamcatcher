@@ -1,0 +1,24 @@
+# crit build config — jobsearchtriage
+# Project type: TypeScript / Node.js
+#
+# Tool names must match entries in the server's crit.toml [[build_tool]] list.
+# Commands run in the repo root on the exact commit being reviewed.
+# Env available: CRIT_CL_ID, CRIT_COMMIT_SHA, CRIT_REPO, CRIT_TARGET_BRANCH
+
+[[tool]]
+name    = "lint"
+command = "npm ci --prefer-offline --silent && npx biome check . && npx stylelint '**/*.{css,scss}' --ignore-path .gitignore"
+
+# The tests exercise the real server (express, better-sqlite3, jsonwebtoken), whose
+# deps live in server/package.json — a root-only `npm ci` does not install them.
+[[tool]]
+name    = "test"
+command = "npm ci --prefer-offline --silent && npm ci --prefix server --prefer-offline --silent && npm test"
+
+[[tool]]
+name    = "integration"
+command = "npm ci --prefer-offline --silent && npm ci --prefix server --prefer-offline --silent && npm run test:integration"
+
+# Per-tool env vars (uncomment as needed):
+# [tool.env]
+# MY_VAR = "value"

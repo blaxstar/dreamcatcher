@@ -1,0 +1,10 @@
+{
+  "port": 3001,
+  "jwt_secret": "CHANGE_ME_TO_A_RANDOM_SECRET",
+  "jwt_ttl_seconds": 2592000,
+  "google_client_id": "",
+  "google_client_secret": "",
+  "google_redirect_uri": "https://dreamcatcher.blaxstar.net/auth/callback",
+  "db_path": "./dreamcatcher.db",
+  "cookie_secure": true
+}
