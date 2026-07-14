@@ -25,5 +25,7 @@ export function get_user(): User | null {
 export async function logout(): Promise<void> {
   await api("POST", "/auth/logout");
   current_user = null;
+  // Force a fresh Gmail sync on the next sign-in.
+  sessionStorage.removeItem("dreamcatcher:synced");
   window.location.reload();
 }

@@ -33,7 +33,36 @@ async function boot(): Promise<void> {
   app.className = "app";
 
   const nav = create_nav(toggle_settings);
+
+  // Mobile top bar with a hamburger that opens the sidebar as a drawer.
+  const topbar = document.createElement("div");
+  topbar.className = "topbar";
+  topbar.innerHTML = `
+    <button class="topbar-toggle" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title"><span class="topbar-mark">dc</span> dreamcatcher</div>
+  `;
+
+  const backdrop = document.createElement("div");
+  backdrop.className = "backdrop";
+
+  const toggle_btn = topbar.querySelector(".topbar-toggle") as HTMLButtonElement;
+  const set_menu = (open: boolean): void => {
+    nav.classList.toggle("open", open);
+    backdrop.classList.toggle("open", open);
+    toggle_btn.setAttribute("aria-expanded", String(open));
+  };
+  toggle_btn.addEventListener("click", () => set_menu(!nav.classList.contains("open")));
+  backdrop.addEventListener("click", () => set_menu(false));
+  // Any navigation or action inside the drawer closes it.
+  nav.addEventListener("click", (e) => {
+    if ((e.target as HTMLElement).closest("a, button")) set_menu(false);
+  });
+
+  app.appendChild(topbar);
   app.appendChild(nav);
+  app.appendChild(backdrop);
 
   const main = document.createElement("div");
   main.className = "main";

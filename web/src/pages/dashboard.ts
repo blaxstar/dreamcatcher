@@ -15,6 +15,10 @@ type JobsResponse = {
 
 let active_tab = "top";
 
+// Pull fresh alerts from Gmail once per browser session (i.e. on a new sign-in),
+// not on every refresh or tab switch — reloading hits the Gmail API and is slow.
+const SYNCED_KEY = "dreamcatcher:synced";
+
 export function render_dashboard(root: HTMLElement): void {
   root.innerHTML = "";
 
@@ -58,7 +62,9 @@ export function render_dashboard(root: HTMLElement): void {
     load_jobs(root, true);
   });
 
-  load_jobs(root, false);
+  // On first load of a fresh session, sync from Gmail automatically.
+  const first_load = sessionStorage.getItem(SYNCED_KEY) === null;
+  load_jobs(root, first_load);
 }
 
 async function load_jobs(root: HTMLElement, reload: boolean): Promise<void> {
@@ -77,6 +83,8 @@ async function load_jobs(root: HTMLElement, reload: boolean): Promise<void> {
   try {
     const url = reload ? "/api/jobs?reload=true" : "/api/jobs";
     const data = await api<JobsResponse>("GET", url);
+
+    if (reload) sessionStorage.setItem(SYNCED_KEY, "1");
 
     render_stats(stats_bar, data.stats);
     render_tabs(root, data);
