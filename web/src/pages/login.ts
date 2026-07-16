@@ -28,6 +28,9 @@ export function render_login(root: HTMLElement): void {
                 ever open or look through your email.</li>
             </ul>
           </details>
+          <p class="login-privacy-link">
+            <a href="/privacy" target="_blank" rel="noopener">Read the full privacy policy</a>
+          </p>
         </div>
       </div>
     </div>

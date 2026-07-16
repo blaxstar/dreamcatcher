@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy — Dreamcatcher</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      :root {
+        --bg: #0b0a0e;
+        --card: #1c1a22;
+        --border: #2c2538;
+        --accent: #e5a9e5;
+        --t0: #f5f5f5;
+        --t1: #c4b8d4;
+        --t2: #9b8fb0;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--t1);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        line-height: 1.65;
+        padding: 2.5rem 1.25rem 4rem;
+      }
+      main { max-width: 720px; margin: 0 auto; }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 2rem;
+      }
+      .brand-mark {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: #e5a9e519;
+        border: 1px solid #e5a9e533;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        color: var(--accent);
+      }
+      .brand-name { font-weight: 700; color: var(--t0); font-size: 1.05rem; }
+      h1 { color: var(--t0); font-size: 1.9rem; margin: 0 0 0.35rem; }
+      h2 {
+        color: var(--t0);
+        font-size: 1.15rem;
+        margin: 2.25rem 0 0.6rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--border);
+      }
+      .updated { color: var(--t2); font-size: 0.9rem; margin-bottom: 1.5rem; }
+      a { color: var(--accent); }
+      ul { padding-left: 1.25rem; }
+      li { margin-bottom: 0.4rem; }
+      strong { color: var(--t0); }
+      .callout {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+        margin: 1.25rem 0;
+      }
+      .back { display: inline-block; margin-top: 2.5rem; font-size: 0.9rem; }
+      footer { margin-top: 3rem; color: var(--t2); font-size: 0.85rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand">
+        <div class="brand-mark">dc</div>
+        <div class="brand-name">Dreamcatcher</div>
+      </div>
+
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: July 16, 2026</p>
+
+      <p>
+        Dreamcatcher is a personal job-search tool that reads the job-alert emails you
+        already receive from job boards, pulls out the individual listings, checks them
+        for signs of scams, and organizes them so you can review and apply more easily.
+        This policy explains exactly what data the app accesses, how it is used, and —
+        just as importantly — what it never does with your information.
+      </p>
+
+      <h2>The Google data we access</h2>
+      <p>
+        When you sign in with Google, Dreamcatcher requests a single permission:
+        <strong>read-only access to your Gmail</strong> (the
+        <code>gmail.readonly</code> scope). We use this access solely to find and read
+        the job-alert emails sent by job boards such as LinkedIn, Indeed, Glassdoor,
+        ZipRecruiter, and Monster.
+      </p>
+      <ul>
+        <li>
+          <strong>Read-only.</strong> The app can only view messages. It can never send,
+          reply to, delete, label, or modify anything in your mailbox.
+        </li>
+        <li>
+          <strong>Limited to job alerts.</strong> Every time it syncs, the app queries
+          Gmail for messages from a specific list of job-alert sender addresses. Emails
+          from anyone else — friends, family, banks, work — are never requested and never
+          seen by the app.
+        </li>
+        <li>
+          <strong>Why this scope.</strong> Reading the message body is necessary because
+          the job title, company, location, and application link live inside the body of
+          the alert email. Narrower Gmail scopes that expose only headers or metadata do
+          not contain this information, so they cannot power the app's core feature.
+        </li>
+      </ul>
+
+      <h2>How we use it</h2>
+      <p>When an alert email is read, the app extracts a small amount of public,
+        non-personal information about each job listing:</p>
+      <ul>
+        <li>Job title, company, and location</li>
+        <li>Pay range, when the listing includes one</li>
+        <li>The public link to the job posting</li>
+      </ul>
+      <p>
+        This information is used to display your job listings, score each one for scam
+        risk, remove duplicates, and flag postings that are repeatedly reposted. It is
+        shown only to you, inside your own account.
+      </p>
+
+      <h2>What we store — and what we don't</h2>
+      <div class="callout">
+        <strong>Your emails are never stored.</strong> After the app reads an alert email
+        to extract the job details above, the email itself is discarded from memory. The
+        subject line, the body text, the sender, and every other message are never written
+        to our database or saved anywhere.
+      </div>
+      <p>The only things saved to the server are:</p>
+      <ul>
+        <li>The extracted job details listed above (title, company, location, pay, link).</li>
+        <li>
+          The Gmail message ID — an opaque identifier, not the email's contents — used
+          only to avoid showing you the same listing twice and to count reposts.
+        </li>
+        <li>
+          Your basic Google profile (email address and name) and the access token that
+          lets the app fetch your alerts. The token is used only to talk to Gmail on your
+          behalf and is removed when you disconnect.
+        </li>
+      </ul>
+
+      <h2>What we never do</h2>
+      <ul>
+        <li>We never sell, rent, or share your data with anyone.</li>
+        <li>We never use your data for advertising.</li>
+        <li>We never use your data to train machine-learning or AI models.</li>
+        <li>
+          No human — including the operator of Dreamcatcher — ever reads, opens, or
+          browses your email.
+        </li>
+        <li>We transfer your Google data to no third parties.</li>
+      </ul>
+
+      <h2>Limited Use disclosure</h2>
+      <p>
+        Dreamcatcher's use and transfer of information received from Google APIs to any
+        other app will adhere to the
+        <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">
+          Google API Services User Data Policy</a>, including the Limited Use requirements.
+      </p>
+
+      <h2>Retention and deleting your data</h2>
+      <p>
+        You can revoke Dreamcatcher's access at any time from your
+        <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account permissions</a>
+        page. Signing out of the app clears your session. To have your stored job data and
+        profile deleted from the server, contact us at the address below and it will be
+        removed.
+      </p>
+
+      <h2>Security</h2>
+      <p>
+        Data is transmitted over encrypted (HTTPS) connections and stored on a private
+        server. Because no email contents are ever stored, the amount of your data at rest
+        is intentionally kept to a minimum.
+      </p>
+
+      <h2>Changes to this policy</h2>
+      <p>
+        If this policy changes, the "last updated" date above will be revised. Material
+        changes affecting how your Google data is handled will be reflected here before
+        they take effect.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about this policy or your data? Email
+        <a href="mailto:dyxribo@blaxstar.net">dyxribo@blaxstar.net</a>.
+      </p>
+
+      <a class="back" href="/">&larr; Back to Dreamcatcher</a>
+
+      <footer>© 2026 Dreamcatcher</footer>
+    </main>
+  </body>
+</html>

@@ -22,6 +22,12 @@ app.use("/api", api_router(cfg));
 
 // In production, serve the built frontend
 const static_dir = path.resolve(__dirname, "../../web/dist");
+
+// Public privacy policy — a standalone page reachable without signing in.
+app.get("/privacy", (_req, res) => {
+  res.sendFile(path.join(static_dir, "privacy.html"));
+});
+
 app.use(express.static(static_dir));
 
 // SPA fallback — serve index.html for all non-API routes

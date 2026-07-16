@@ -770,6 +770,11 @@ a:hover {
   color: var(--t1);
 }
 
+.login-privacy-link {
+  margin: 0.85rem 0 0;
+  font-size: 0.82rem;
+}
+
 /* ── form ────────────────────────────────────────────────── */
 .form-field {
   margin-bottom: 1rem;
