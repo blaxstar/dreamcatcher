@@ -146,11 +146,21 @@ function show_toast(msg: string): void {
 
 // ── filter builder modal ──
 
-type BuilderSource = { label: string; email: string; active: boolean };
+type BuilderSource = { label: string; emails: string[]; active: boolean };
 
-const KNOWN_SOURCES: { label: string; email: string }[] = [
-  { label: "LinkedIn", email: "jobalerts-noreply@linkedin.com" },
-  { label: "Indeed", email: "alert@indeed.com" },
+// Each board can send alerts from several addresses; matching one activates the source.
+const KNOWN_SOURCES: { label: string; emails: string[] }[] = [
+  {
+    label: "LinkedIn",
+    emails: ["jobalerts-noreply@linkedin.com", "jobs-listings@linkedin.com"],
+  },
+  {
+    label: "Indeed",
+    emails: ["alert@indeed.com", "donotreply@match.indeed.com", "donotreply@jobalert.indeed.com"],
+  },
+  { label: "Glassdoor", emails: ["noreply@glassdoor.com"] },
+  { label: "ZipRecruiter", emails: ["alerts@ziprecruiter.com"] },
+  { label: "Monster", emails: ["no-reply@ses.monster.com"] },
 ];
 
 const TIME_OPTIONS: { label: string; value: string }[] = [
@@ -177,15 +187,16 @@ function parse_query(query: string): {
     found_emails.push(m[1].toLowerCase());
   }
 
+  const found_set = new Set(found_emails);
   const sources: BuilderSource[] = KNOWN_SOURCES.map((s) => ({
     ...s,
-    active: found_emails.includes(s.email.toLowerCase()),
+    active: s.emails.some((e) => found_set.has(e.toLowerCase())),
   }));
 
-  const known_set = new Set(KNOWN_SOURCES.map((s) => s.email.toLowerCase()));
+  const known_set = new Set(KNOWN_SOURCES.flatMap((s) => s.emails.map((e) => e.toLowerCase())));
   const custom_emails = found_emails.filter((e) => !known_set.has(e));
 
-  // If nothing was detected, default LinkedIn + Indeed on
+  // If nothing was detected, default all known sources on
   if (sources.every((s) => !s.active) && custom_emails.length === 0) {
     for (const s of sources) s.active = true;
   }
@@ -196,7 +207,9 @@ function parse_query(query: string): {
 function build_query(sources: BuilderSource[], custom_emails: string[], time: string): string {
   const from_parts: string[] = [];
   for (const s of sources) {
-    if (s.active) from_parts.push(`from:(${s.email})`);
+    if (s.active) {
+      for (const e of s.emails) from_parts.push(`from:(${e})`);
+    }
   }
   for (const e of custom_emails) {
     if (e.trim()) from_parts.push(`from:(${e.trim()})`);

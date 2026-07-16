@@ -59,7 +59,8 @@ export type db_job = {
 };
 
 export const DEFAULT_SETTINGS: user_settings = {
-  gmail_query: "newer_than:7d (from:(jobalerts-noreply@linkedin.com) OR from:(alert@indeed.com))",
+  gmail_query:
+    "newer_than:7d (from:(jobalerts-noreply@linkedin.com) OR from:(jobs-listings@linkedin.com) OR from:(alert@indeed.com) OR from:(donotreply@match.indeed.com) OR from:(donotreply@jobalert.indeed.com) OR from:(noreply@glassdoor.com) OR from:(alerts@ziprecruiter.com) OR from:(no-reply@ses.monster.com))",
   max_messages: 40,
   max_apply_today: 3,
   theme: "dark",
