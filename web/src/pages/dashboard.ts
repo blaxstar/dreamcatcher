@@ -19,6 +19,30 @@ let active_tab = "top";
 // not on every refresh or tab switch — reloading hits the Gmail API and is slow.
 const SYNCED_KEY = "dreamcatcher:synced";
 
+// Source (site) display filter — which senders to show. Persisted across reloads.
+const HIDDEN_SOURCES_KEY = "dreamcatcher:hidden-sources";
+const SOURCE_LABELS: Record<string, string> = {
+  linkedin: "LinkedIn",
+  indeed: "Indeed",
+  glassdoor: "Glassdoor",
+  ziprecruiter: "ZipRecruiter",
+  monster: "Monster",
+  unknown: "Other",
+};
+const hidden_sources = new Set<string>(load_hidden_sources());
+
+function load_hidden_sources(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(HIDDEN_SOURCES_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function save_hidden_sources(): void {
+  localStorage.setItem(HIDDEN_SOURCES_KEY, JSON.stringify([...hidden_sources]));
+}
+
 export function render_dashboard(root: HTMLElement): void {
   root.innerHTML = "";
 
@@ -47,6 +71,11 @@ export function render_dashboard(root: HTMLElement): void {
   stats_bar.className = "stats-bar";
   stats_bar.id = "stats-bar";
   root.appendChild(stats_bar);
+
+  const source_filter = document.createElement("div");
+  source_filter.className = "source-filter";
+  source_filter.id = "source-filter";
+  root.appendChild(source_filter);
 
   const tabs = document.createElement("div");
   tabs.className = "tabs";
@@ -87,6 +116,7 @@ async function load_jobs(root: HTMLElement, reload: boolean): Promise<void> {
     if (reload) sessionStorage.setItem(SYNCED_KEY, "1");
 
     render_stats(stats_bar, data.stats);
+    render_source_filter(data);
     render_tabs(root, data);
     render_job_list(list, data);
   } catch (err: any) {
@@ -144,14 +174,62 @@ function render_tabs(root: HTMLElement, data: JobsResponse): void {
   }
 }
 
+function render_source_filter(data: JobsResponse): void {
+  const el = document.getElementById("source-filter");
+  if (!el) return;
+  el.innerHTML = "";
+
+  const counts = new Map<string, number>();
+  for (const j of data.jobs) counts.set(j.source, (counts.get(j.source) || 0) + 1);
+  const sources = [...counts.keys()].sort();
+
+  // Nothing to filter if everything is from one place.
+  if (sources.length <= 1) return;
+
+  const heading = document.createElement("span");
+  heading.className = "source-filter-label";
+  heading.textContent = "show";
+  el.appendChild(heading);
+
+  for (const src of sources) {
+    const chip = document.createElement("label");
+    chip.className = "source-chip";
+
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = !hidden_sources.has(src);
+    box.addEventListener("change", () => {
+      if (box.checked) hidden_sources.delete(src);
+      else hidden_sources.add(src);
+      save_hidden_sources();
+      const list = document.getElementById("job-list");
+      if (list) render_job_list(list, data);
+    });
+
+    const badge = document.createElement("span");
+    badge.className = `badge badge-${src}`;
+    badge.textContent = SOURCE_LABELS[src] || src;
+
+    const count = document.createElement("span");
+    count.className = "source-count";
+    count.textContent = String(counts.get(src));
+
+    chip.append(box, badge, count);
+    el.appendChild(chip);
+  }
+}
+
 function render_job_list(el: HTMLElement, data: JobsResponse): void {
   el.innerHTML = "";
+
+  // Apply the source (site) filter before anything else.
+  const visible = data.jobs.filter((j) => !hidden_sources.has(j.source));
 
   let filtered: Job[];
 
   switch (active_tab) {
     case "top": {
-      filtered = data.jobs
+      filtered = visible
         .filter(
           (j) => j.status === "pending" && (j.risk_level === "low" || j.risk_level === "maybe"),
         )
@@ -160,19 +238,19 @@ function render_job_list(el: HTMLElement, data: JobsResponse): void {
       break;
     }
     case "all":
-      filtered = data.jobs.filter((j) => j.status === "pending");
+      filtered = visible.filter((j) => j.status === "pending");
       break;
     case "applied":
-      filtered = data.jobs.filter((j) => j.status === "applied");
+      filtered = visible.filter((j) => j.status === "applied");
       break;
     case "skipped":
-      filtered = data.jobs.filter((j) => j.status === "skipped");
+      filtered = visible.filter((j) => j.status === "skipped");
       break;
     case "risky":
-      filtered = data.jobs.filter((j) => j.risk_level === "high" || j.risk_level === "avoid");
+      filtered = visible.filter((j) => j.risk_level === "high" || j.risk_level === "avoid");
       break;
     default:
-      filtered = data.jobs;
+      filtered = visible;
   }
 
   if (filtered.length === 0) {

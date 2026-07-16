@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   user_email  TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
   job_key     TEXT NOT NULL,
-  source      TEXT NOT NULL CHECK(source IN ('linkedin','indeed','unknown')),
+  source      TEXT NOT NULL,
   title       TEXT,
   company     TEXT,
   location    TEXT,
@@ -56,6 +56,72 @@ export function init_db(db_path: string): Database.Database {
   }
   if (!cols.some((c) => c.name === "seen_email_ids")) {
     db.exec("ALTER TABLE jobs ADD COLUMN seen_email_ids TEXT NOT NULL DEFAULT '[]'");
+  }
+
+  // Older databases constrained `source` to linkedin/indeed/unknown. We now
+  // support more boards (glassdoor/ziprecruiter/monster), so rebuild the table
+  // without that CHECK. Data is preserved; columns are copied by name (safe
+  // regardless of any ALTER-appended column order).
+  const jobs_sql =
+    (
+      db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='jobs'").get() as
+        | { sql?: string }
+        | undefined
+    )?.sql ?? "";
+  if (/CHECK\s*\(\s*source\s+IN/i.test(jobs_sql)) {
+    db.pragma("foreign_keys = OFF");
+    const cols_list = [
+      "id",
+      "user_email",
+      "job_key",
+      "source",
+      "title",
+      "company",
+      "location",
+      "link",
+      "pay",
+      "risk_score",
+      "risk_level",
+      "status",
+      "notes_json",
+      "email_id",
+      "seen_email_ids",
+      "times_seen",
+      "first_seen",
+      "updated_at",
+    ].join(", ");
+    const rebuild = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE jobs_new (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_email  TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+          job_key     TEXT NOT NULL,
+          source      TEXT NOT NULL,
+          title       TEXT,
+          company     TEXT,
+          location    TEXT,
+          link        TEXT,
+          pay         TEXT,
+          risk_score  INTEGER NOT NULL DEFAULT 0,
+          risk_level  TEXT NOT NULL CHECK(risk_level IN ('low','maybe','high','avoid')),
+          status      TEXT NOT NULL CHECK(status IN ('pending','applied','skipped')) DEFAULT 'pending',
+          notes_json  TEXT NOT NULL DEFAULT '[]',
+          email_id    TEXT,
+          seen_email_ids TEXT NOT NULL DEFAULT '[]',
+          times_seen  INTEGER NOT NULL DEFAULT 1,
+          first_seen  INTEGER NOT NULL,
+          updated_at  INTEGER NOT NULL,
+          UNIQUE(user_email, job_key)
+        );
+      `);
+      db.exec(`INSERT INTO jobs_new (${cols_list}) SELECT ${cols_list} FROM jobs`);
+      db.exec("DROP TABLE jobs");
+      db.exec("ALTER TABLE jobs_new RENAME TO jobs");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(user_email)");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_jobs_user_status ON jobs(user_email, status)");
+    });
+    rebuild();
+    db.pragma("foreign_keys = ON");
   }
 
   return db;

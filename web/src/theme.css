@@ -440,6 +440,24 @@ a:hover {
   border-color: #2a5070;
 }
 
+.badge-glassdoor {
+  background: #0a3d2e;
+  color: #6ddba9;
+  border-color: #14664c;
+}
+
+.badge-ziprecruiter {
+  background: #123a1f;
+  color: #7fd68a;
+  border-color: #1f5e33;
+}
+
+.badge-monster {
+  background: #2e1a4d;
+  color: #c3a0f0;
+  border-color: #4a2e78;
+}
+
 .badge-unknown {
   background: var(--s2);
   color: var(--t2);
@@ -481,6 +499,46 @@ a:hover {
 .input-clickable:hover {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-a20);
+}
+
+/* ── source filter ───────────────────────────────────────── */
+.source-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.source-filter:empty {
+  display: none;
+}
+
+.source-filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--t3);
+}
+
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.source-chip input {
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+
+.source-count {
+  font-size: 0.75rem;
+  color: var(--t3);
 }
 
 /* ── tabs ────────────────────────────────────────────────── */

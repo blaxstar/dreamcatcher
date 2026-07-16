@@ -56,15 +56,21 @@ export function extract_linkedin_job_cards(
   return out;
 }
 
-export function extract_indeed_job_cards(
-  html: string,
-): Array<{ title?: string; company?: string; location?: string; pay?: string; link?: string }> {
+export function extract_indeed_job_cards(html: string): Array<{
+  title?: string;
+  company?: string;
+  location?: string;
+  pay?: string;
+  link?: string;
+  description?: string;
+}> {
   const out: Array<{
     title?: string;
     company?: string;
     location?: string;
     pay?: string;
     link?: string;
+    description?: string;
   }> = [];
 
   // Each job is introduced by its title link, tagged "strong-text-link". This
@@ -90,6 +96,7 @@ export function extract_indeed_job_cards(
     let company: string | undefined;
     let location: string | undefined;
     let pay: string | undefined;
+    let description: string | undefined;
     let seen_company = false;
 
     for (const pm of body.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
@@ -125,11 +132,16 @@ export function extract_indeed_job_cards(
         }
         continue;
       }
-      if (!location && text.length <= 60) location = text;
+      if (!location && text.length <= 60) {
+        location = text;
+        continue;
+      }
+      // The first sentence-length line is the job description snippet.
+      if (!description && text.length > 60) description = text;
     }
 
     if (title || link) {
-      out.push({ title, company, location, pay, link });
+      out.push({ title, company, location, pay, link, description });
     }
   }
 

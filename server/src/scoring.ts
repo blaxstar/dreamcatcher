@@ -23,8 +23,12 @@ export function guess_source(
 ): job_item["source"] {
   const from_l = (from_header || "").toLowerCase();
   const subj_l = (subject || "").toLowerCase();
-  if (from_l.includes("linkedin") || subj_l.includes("linkedin")) return "linkedin";
-  if (from_l.includes("indeed") || subj_l.includes("indeed")) return "indeed";
+  const hay = `${from_l} ${subj_l}`;
+  if (hay.includes("linkedin")) return "linkedin";
+  if (hay.includes("indeed")) return "indeed";
+  if (hay.includes("glassdoor")) return "glassdoor";
+  if (hay.includes("ziprecruiter")) return "ziprecruiter";
+  if (hay.includes("monster")) return "monster";
   return "unknown";
 }
 
@@ -96,81 +100,190 @@ export function job_key(job: { title?: string; company?: string; location?: stri
   ].join(" | ");
 }
 
+/**
+ * Map a 0–10 risk score to a level. Single source of truth for the tiers so
+ * score_risk and apply_repost_risk can never disagree.
+ */
+export function risk_level_for(score: number): risk_level {
+  const s = Math.max(0, Math.min(10, score));
+  if (s <= 2) return "low";
+  if (s <= 5) return "maybe";
+  if (s <= 8) return "high";
+  return "avoid";
+}
+
+// Off-platform contact and up-front-payment patterns. These are the strongest
+// scam signals in a job posting and rarely appear in a legitimate one. Each is a
+// word-boundary regex (not a bare substring) so we don't flag "signal" inside a
+// low-voltage/relay technician description or "crypto" inside "cryptography".
+const SCAM_PATTERNS: RegExp[] = [
+  /\bwhats\s?app\b/,
+  /\btelegram\b/,
+  /\b(google )?hangouts\b/, // classic scam "interview" channel
+  /\bwire transfer\b/,
+  /\bgift cards?\b/,
+  /\b(bitcoin|cryptocurrency)\b/,
+  /\bwestern union\b/,
+  /\bmoney order\b/,
+  /\bcashier'?s? check\b/,
+  /\b(processing|registration|activation|onboarding|training) fee\b/,
+  /\bupfront (payment|fee|cost|deposit)\b/,
+  /\bpay for (your )?(own )?(equipment|training|background check|starter kit)\b/,
+  /\binvest (your own|your) money\b/,
+];
+
+// Requests for sensitive personal data before a formal offer. Legitimate boards
+// collect this later, on a secured portal — never in an alert email — so its
+// presence in a posting is a hard scam signal.
+const SENSITIVE_INFO_PATTERNS: RegExp[] = [
+  /\bsocial security (number|#|no\.?)\b/,
+  /\bssn\b/,
+  /\bbank (account|routing)\b/,
+  /\brouting number\b/,
+  /\b(copy|photo|scan|picture) of your (id|i\.d\.|driver'?s? license|passport|ssn)\b/,
+  /\b(provide|send|share) your (date of birth|dob)\b/,
+];
+
+// "Get rich" / MLM / investment framing.
+const GET_RICH_PATTERNS: RegExp[] = [
+  /\bpassive income\b/,
+  /\bguaranteed (income|money|wealth|earnings|pay)\b/,
+  /\bbe your own boss\b/,
+  /\bfinancial freedom\b/,
+  /\binvestment opportunity\b/,
+  /\bdouble your income\b/,
+];
+
+// Improbably high pay pitched with "earn $X a day/week" marketing framing. A
+// legitimate posting quotes a rate ("$45/hr") rather than dangling earnings.
+const UNREALISTIC_PAY_PATTERNS: RegExp[] = [
+  /\bearn (up to )?\$[\d,]{2,}\s*(\/|per |a )?(day|week)\b/,
+  /\bmake \$[\d,]{2,}\s*(\/|per |a )?(day|week)\b/,
+];
+
+// A free webmail address used as the application contact (their "recruiter domain
+// doesn't match the company" signal, approximated from the posting text).
+const FREEMAIL_CONTACT =
+  /\b[a-z0-9._%+-]+@(gmail|yahoo|outlook|hotmail|aol|protonmail|icloud)\.com\b/;
+
+// High-pressure recruiting language. A weak signal on its own — curated to avoid
+// collisions with real job text (e.g. bare "urgent" would hit "urgent care").
+const PRESSURE_PATTERNS: RegExp[] = [
+  /\bimmediate start\b/,
+  /\bstart immediately\b/,
+  /\bhiring now\b/,
+  /\blimited spots\b/,
+  /\bno experience (needed|required|necessary)\b/,
+  /\bapply now before\b/,
+];
+
+// Job boards (and their known redirect subdomains) whose links we trust.
+const KNOWN_JOB_HOSTS = [
+  "indeed.com",
+  "linkedin.com",
+  "lnkd.in",
+  "glassdoor.com",
+  "ziprecruiter.com",
+  "monster.com",
+];
+
+/**
+ * Score a SINGLE job's own content for risk (0–10). The caller must pass this
+ * job's fields only — never a whole digest email — so one bad listing can't
+ * taint the others.
+ *
+ * Rubric (scores clamp to 10):
+ *   +6  scam contact / up-front-payment / "invest your money" (SCAM_PATTERNS)
+ *   +6  asks for sensitive personal info up front (SENSITIVE_INFO_PATTERNS)
+ *   +3  "get rich" / MLM / investment framing (GET_RICH_PATTERNS)
+ *   +2  improbable "earn $X a day" pay pitch (UNREALISTIC_PAY_PATTERNS)
+ *   +2  application link points off the known job boards
+ *   +2  free-webmail address given as the contact (FREEMAIL_CONTACT)
+ *   +1  missing company name
+ *   +1  no application link  (or +1 if the link is malformed)
+ *   +1  high-pressure recruiting language (PRESSURE_PATTERNS)
+ * Any single strong (+6) signal reaches "high"; strong + anything → "avoid".
+ * Repost/staleness ("ghost job" age) is layered on later by apply_repost_risk.
+ *
+ * Deliberately NOT scored here (they need live web lookups, not email text):
+ * whether the role is on the company's official careers page, whether the
+ * company has a real online presence/address, and whether a recruiter's domain
+ * matches the company. Those stay as manual checks — see the app's guidance.
+ */
 export function score_risk(job: {
   source: job_item["source"];
-  subject?: string;
-  from?: string;
-  body_text: string;
   title?: string;
   company?: string;
+  location?: string;
+  pay?: string;
   link?: string;
+  /** This job's own descriptive text (a per-job snippet), never the whole email. */
+  text?: string;
 }): { risk_score: number; risk_level: risk_level; notes: string[] } {
   const notes: string[] = [];
   let risk_score = 0;
 
-  const subj_l = (job.subject || "").toLowerCase();
-  const from_l = (job.from || "").toLowerCase();
-  const body_l = (job.body_text || "").toLowerCase();
-  const combined = `${subj_l}\n${from_l}\n${body_l}`;
+  const hay = [job.title, job.company, job.location, job.pay, job.text]
+    .filter(Boolean)
+    .join("\n")
+    .toLowerCase();
+
+  if (SCAM_PATTERNS.some((re) => re.test(hay))) {
+    risk_score += 6;
+    notes.push("Mentions off-platform contact or up-front payment — a common scam signal.");
+  }
+
+  if (SENSITIVE_INFO_PATTERNS.some((re) => re.test(hay))) {
+    risk_score += 6;
+    notes.push(
+      "Asks for sensitive personal info (SSN, bank, or ID) — never send this before a signed offer.",
+    );
+  }
+
+  if (GET_RICH_PATTERNS.some((re) => re.test(hay))) {
+    risk_score += 3;
+    notes.push("Uses 'get rich' / investment framing common in scams and MLMs.");
+  }
+
+  if (UNREALISTIC_PAY_PATTERNS.some((re) => re.test(hay))) {
+    risk_score += 2;
+    notes.push("Advertises improbably high pay ('earn $X a day') — a common lure.");
+  }
+
+  if (FREEMAIL_CONTACT.test(hay)) {
+    risk_score += 2;
+    notes.push("Lists a personal webmail address (Gmail/Yahoo/etc.) as the contact.");
+  }
 
   if (!job.company) {
     risk_score += 1;
-    notes.push("Missing company name.");
+    notes.push("No company name listed.");
   }
 
-  const vague_phrases = [
-    "competitive pay",
-    "great benefits",
-    "immediate start",
-    "hiring now",
-    "urgent",
-    "limited time",
-  ];
-  if (vague_phrases.some((p) => combined.includes(p))) {
+  if (!job.link) {
     risk_score += 1;
-    notes.push("Contains vague recruiting phrases.");
-  }
-
-  const scam_channels = ["telegram", "whatsapp", "signal", "wire transfer", "crypto", "gift card"];
-  if (scam_channels.some((p) => combined.includes(p))) {
-    risk_score += 6;
-    notes.push("Contains scam communication/payment keywords.");
-  }
-
-  if (job.link) {
+    notes.push("No application link.");
+  } else {
     try {
-      const u = new URL(job.link);
-      const host = u.hostname.toLowerCase();
-      const ok_hosts = [
-        "linkedin.com",
-        "www.linkedin.com",
-        "indeed.com",
-        "www.indeed.com",
-        "lnkd.in",
-      ];
-      const is_ok = ok_hosts.some((h) => host === h || host.endsWith("." + h));
-      if (!is_ok) {
+      const host = new URL(job.link).hostname.toLowerCase();
+      const is_known = KNOWN_JOB_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+      if (!is_known) {
         risk_score += 2;
-        notes.push(`Link domain not a standard LinkedIn/Indeed domain: ${host}`);
+        notes.push(`Application link goes off-platform (${host}).`);
       }
     } catch {
       risk_score += 1;
-      notes.push("Link parse failed.");
+      notes.push("Application link looks malformed.");
     }
-  } else {
-    risk_score += 1;
   }
 
-  if (risk_score < 0) risk_score = 0;
-  if (risk_score > 10) risk_score = 10;
+  if (PRESSURE_PATTERNS.some((re) => re.test(hay))) {
+    risk_score += 1;
+    notes.push("Uses high-pressure recruiting language.");
+  }
 
-  let risk_level: risk_level = "low";
-  if (risk_score <= 2) risk_level = "low";
-  else if (risk_score <= 5) risk_level = "maybe";
-  else if (risk_score <= 8) risk_level = "high";
-  else risk_level = "avoid";
-
-  return { risk_score, risk_level, notes };
+  risk_score = Math.max(0, Math.min(10, risk_score));
+  return { risk_score, risk_level: risk_level_for(risk_score), notes };
 }
 
 /** Adjust risk score based on repost frequency and age. */
@@ -199,11 +312,5 @@ export function apply_repost_risk(
 
   if (risk_score > 10) risk_score = 10;
 
-  let risk_level: risk_level = "low";
-  if (risk_score <= 2) risk_level = "low";
-  else if (risk_score <= 5) risk_level = "maybe";
-  else if (risk_score <= 8) risk_level = "high";
-  else risk_level = "avoid";
-
-  return { risk_score, risk_level, notes };
+  return { risk_score, risk_level: risk_level_for(risk_score), notes };
 }

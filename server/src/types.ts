@@ -1,4 +1,10 @@
-export type job_source = "linkedin" | "indeed" | "unknown";
+export type job_source =
+  | "linkedin"
+  | "indeed"
+  | "glassdoor"
+  | "ziprecruiter"
+  | "monster"
+  | "unknown";
 export type risk_level = "low" | "maybe" | "high" | "avoid";
 export type job_status = "pending" | "applied" | "skipped";
 

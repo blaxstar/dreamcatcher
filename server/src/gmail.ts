@@ -109,7 +109,7 @@ export async function fetch_jobs_from_gmail(
         const link = card.link || fallback.link;
         const notes = fallback.notes;
 
-        const scored = score_risk({ source, subject, from, body_text, title, company, link });
+        const scored = score_risk({ source, title, company, location, pay: card.pay, link });
         const item: job_item = {
           source,
           email_id: id,
@@ -142,7 +142,15 @@ export async function fetch_jobs_from_gmail(
         const link = card.link || fallback.link;
         const notes = fallback.notes;
 
-        const scored = score_risk({ source, subject, from, body_text, title, company, link });
+        const scored = score_risk({
+          source,
+          title,
+          company,
+          location,
+          pay: card.pay,
+          link,
+          text: card.description,
+        });
         const item: job_item = {
           source,
           email_id: id,
@@ -169,12 +177,12 @@ export async function fetch_jobs_from_gmail(
     const extracted = extract_job_fields(subject, body_text);
     const scored = score_risk({
       source,
-      subject,
-      from,
-      body_text,
       title: extracted.title,
       company: extracted.company,
+      location: extracted.location,
       link: extracted.link,
+      // Single-job email: the whole body is this one job's content.
+      text: `${subject || ""}\n${body_text}`,
     });
     const item: job_item = {
       source,

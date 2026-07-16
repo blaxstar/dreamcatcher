@@ -6,6 +6,7 @@ import {
   guess_source,
   is_url,
   job_key,
+  risk_level_for,
   score_risk,
 } from "../src/scoring.js";
 
@@ -93,67 +94,193 @@ describe("job_key", () => {
 });
 
 describe("score_risk", () => {
-  const base = { source: "linkedin" as const, body_text: "", subject: "", from: "" };
+  const base = { source: "indeed" as const };
+  const good_link = "https://www.indeed.com/rc/clk/dl?jk=abc";
 
-  it("scores a well-formed linkedin posting as low risk", () => {
+  it("scores a well-formed posting as low risk", () => {
     const out = score_risk({
       ...base,
       company: "Acme Corp",
       title: "Engineer",
-      body_text: "A normal job description.",
-      link: "https://www.linkedin.com/jobs/view/123",
+      location: "Remote",
+      text: "A normal job description.",
+      link: good_link,
     });
     expect(out.risk_score).toBe(0);
     expect(out.risk_level).toBe("low");
   });
 
-  it("flags scam payment/communication channels hard", () => {
+  it("flags off-platform contact / up-front payment hard", () => {
     const out = score_risk({
       ...base,
       company: "Acme Corp",
-      body_text: "Contact us on telegram and we will send a wire transfer.",
-      link: "https://www.linkedin.com/jobs/view/123",
+      text: "Contact us on telegram and we will send a wire transfer.",
+      link: good_link,
     });
-    expect(out.risk_score).toBeGreaterThanOrEqual(6);
+    expect(out.risk_score).toBe(6); // scam only; company present, link on-platform
     expect(out.risk_level).toBe("high");
-    expect(out.notes).toContain("Contains scam communication/payment keywords.");
+    expect(out.notes.some((n) => n.includes("scam"))).toBe(true);
   });
 
-  it("penalizes links on non-standard domains", () => {
+  it("does NOT flag 'signal' in an electronics job description (the old false positive)", () => {
+    // This is the exact bug that scored every Indeed digest 6/10.
     const out = score_risk({
       ...base,
-      company: "Acme Corp",
-      body_text: "normal text",
-      link: "https://totally-legit-jobs.xyz/apply",
+      title: "Relay Field Technician",
+      company: "Qualus",
+      location: "Philadelphia, PA",
+      text: "Install and maintain low-voltage signal wiring, relay systems, and fire alarm circuits.",
+      link: good_link,
     });
-    expect(out.risk_score).toBe(2);
-    expect(out.notes.some((n) => n.includes("not a standard LinkedIn/Indeed domain"))).toBe(true);
+    expect(out.risk_score).toBe(0);
+    expect(out.risk_level).toBe("low");
   });
 
-  it("accepts subdomains of known job hosts", () => {
+  it("does NOT flag 'urgent care' as pressure language", () => {
     const out = score_risk({
       ...base,
-      company: "Acme Corp",
-      body_text: "normal text",
-      link: "https://uk.linkedin.com/jobs/view/5",
+      title: "Radiology Technician",
+      company: "Urgent Care Partners",
+      text: "Join our urgent care clinic supporting local patients.",
+      link: good_link,
     });
     expect(out.risk_score).toBe(0);
   });
 
-  it("penalizes a missing company and a missing link", () => {
-    const out = score_risk({ ...base, body_text: "normal text" });
-    expect(out.risk_score).toBe(2);
-    expect(out.notes).toContain("Missing company name.");
-  });
-
-  it("clamps the score to a maximum of 10", () => {
+  it("penalizes an off-platform application link", () => {
     const out = score_risk({
       ...base,
-      body_text: "urgent hiring now, pay via crypto gift card on whatsapp, wire transfer",
+      company: "Acme Corp",
+      text: "normal text",
+      link: "https://totally-legit-jobs.xyz/apply",
+    });
+    expect(out.risk_score).toBe(2);
+    expect(out.notes.some((n) => n.includes("off-platform"))).toBe(true);
+  });
+
+  it("accepts subdomains of every known job board", () => {
+    for (const link of [
+      "https://uk.linkedin.com/jobs/view/5",
+      "https://cts.indeed.com/v3/xyz",
+      "https://www.glassdoor.com/job/1",
+      "https://www.ziprecruiter.com/jobs/2",
+      "https://jobs.monster.com/3",
+    ]) {
+      const out = score_risk({ ...base, company: "Acme Corp", text: "normal", link });
+      expect(out.risk_score, link).toBe(0);
+    }
+  });
+
+  it("penalizes a missing company and a missing link", () => {
+    const out = score_risk({ ...base, text: "normal text" });
+    expect(out.risk_score).toBe(2);
+    expect(out.notes).toContain("No company name listed.");
+    expect(out.notes).toContain("No application link.");
+  });
+
+  it("stacks signals and clamps to 10", () => {
+    const out = score_risk({
+      ...base,
+      // scam (+6) + no company (+1) + off-platform link (+2) + pressure (+1) = 10
+      text: "hiring now — pay a processing fee via whatsapp",
       link: "https://scam.example.net/x",
     });
-    expect(out.risk_score).toBeLessThanOrEqual(10);
+    expect(out.risk_score).toBe(10);
     expect(out.risk_level).toBe("avoid");
+  });
+
+  it("flags requests for sensitive personal info", () => {
+    const out = score_risk({
+      ...base,
+      company: "Acme",
+      text: "To onboard, email a copy of your driver's license and your bank routing number.",
+      link: good_link,
+    });
+    expect(out.risk_score).toBe(6);
+    expect(out.risk_level).toBe("high");
+    expect(out.notes.some((n) => n.includes("sensitive personal info"))).toBe(true);
+  });
+
+  it("flags a scam interview channel (Google Hangouts)", () => {
+    const out = score_risk({
+      ...base,
+      company: "Acme",
+      text: "The interview will be conducted over Google Hangouts.",
+      link: good_link,
+    });
+    expect(out.risk_score).toBe(6);
+  });
+
+  it("flags 'get rich' / MLM framing at a moderate level", () => {
+    const out = score_risk({
+      ...base,
+      company: "Acme",
+      text: "Be your own boss and earn passive income with this investment opportunity.",
+      link: good_link,
+    });
+    expect(out.risk_score).toBe(3);
+    expect(out.risk_level).toBe("maybe");
+  });
+
+  it("flags an 'earn $X a day' pay lure", () => {
+    const out = score_risk({
+      ...base,
+      company: "Acme",
+      text: "Work from home and earn $500 a day, no experience needed!",
+      link: good_link,
+    });
+    // unrealistic pay (+2) + pressure "no experience needed" (+1) = 3
+    expect(out.risk_score).toBe(3);
+    expect(out.notes.some((n) => n.includes("improbably high pay"))).toBe(true);
+  });
+
+  it("flags a free-webmail application contact", () => {
+    const out = score_risk({
+      ...base,
+      company: "Acme",
+      text: "Send your resume to hr.acme.recruiter@gmail.com to apply.",
+      link: good_link,
+    });
+    expect(out.risk_score).toBe(2);
+    expect(out.notes.some((n) => n.includes("webmail"))).toBe(true);
+  });
+
+  it("does NOT flag a legitimate day-rate pay quote", () => {
+    // A plain rate ("$650/day") is not the "earn $X a day" lure framing.
+    const out = score_risk({
+      ...base,
+      title: "Contract Consultant",
+      company: "Deloitte",
+      pay: "$650/day",
+      text: "Six-month contract engagement for a senior consultant.",
+      link: good_link,
+    });
+    expect(out.risk_score).toBe(0);
+  });
+
+  it("does NOT flag legitimate mentions of 'social security' benefits or bank roles", () => {
+    const out = score_risk({
+      ...base,
+      title: "Teller",
+      company: "First National Bank",
+      text: "Process deposits and help clients understand social security benefit direct deposits.",
+      link: good_link,
+    });
+    expect(out.risk_score).toBe(0);
+  });
+});
+
+describe("risk_level_for", () => {
+  it("maps scores to tiers at the documented boundaries", () => {
+    expect([0, 1, 2].map(risk_level_for)).toEqual(["low", "low", "low"]);
+    expect([3, 4, 5].map(risk_level_for)).toEqual(["maybe", "maybe", "maybe"]);
+    expect([6, 7, 8].map(risk_level_for)).toEqual(["high", "high", "high"]);
+    expect([9, 10].map(risk_level_for)).toEqual(["avoid", "avoid"]);
+  });
+
+  it("clamps out-of-range scores", () => {
+    expect(risk_level_for(-5)).toBe("low");
+    expect(risk_level_for(99)).toBe("avoid");
   });
 });
 
