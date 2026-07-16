@@ -29,3 +29,6 @@ token.json
 
 # runtime state
 .cache.json
+
+# indeed email samples (diagnostic dumps)
+server/scripts/indeed-samples/

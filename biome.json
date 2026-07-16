@@ -29,6 +29,7 @@
       "!**/node_modules/**",
       "!**/coverage/**",
       "!**/.next/**",
+      "!**/tests/fixtures/**",
       "!**/*.min.js"
     ]
   }
