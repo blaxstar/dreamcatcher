@@ -243,15 +243,8 @@ a:hover {
 .topbar-mark {
   width: 28px;
   height: 28px;
-  border-radius: var(--r-sm);
-  background: var(--accent-a10);
-  border: 1px solid var(--accent-a20);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-  font-weight: 900;
-  color: var(--accent);
+  display: block;
+  flex-shrink: 0;
 }
 
 .backdrop {
@@ -619,16 +612,8 @@ a:hover {
 .nav-logo-mark {
   width: 28px;
   height: 28px;
-  border-radius: var(--r-sm);
-  background: var(--accent-a20);
-  border: 1px solid var(--accent-a20);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent);
-  font-weight: 900;
-  font-size: 0.85rem;
-  letter-spacing: 0;
+  display: block;
+  flex-shrink: 0;
 }
 
 .nav-section {
@@ -646,10 +631,14 @@ a:hover {
   gap: 0.6rem;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
+  font-family: inherit;
   color: var(--t1);
   text-decoration: none;
+  border: none;
   border-radius: var(--r);
   margin: 0.125rem 0.5rem;
+  background: none;
+  appearance: none;
   transition:
     background 100ms,
     color 100ms;
@@ -768,15 +757,7 @@ a:hover {
 .login-logo-mark {
   width: 52px;
   height: 52px;
-  border-radius: var(--r-lg);
-  background: var(--accent-a10);
-  border: 1px solid var(--accent-a20);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  font-weight: 900;
-  color: var(--accent);
+  display: block;
   margin: 0 auto 0.75rem;
 }
 

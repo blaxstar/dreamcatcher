@@ -14,7 +14,7 @@ export function create_nav(on_settings: () => void): HTMLElement {
 
   nav.innerHTML = `
     <a class="nav-logo" href="#/">
-      <div class="nav-logo-mark">dc</div>
+      <img class="nav-logo-mark" src="/favicon.svg" alt="" />
       Dreamcatcher
     </a>
 
