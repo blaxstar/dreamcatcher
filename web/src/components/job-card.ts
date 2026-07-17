@@ -34,8 +34,8 @@ export function create_job_card(job: Job, on_update?: () => void): HTMLElement {
   const card = document.createElement("div");
   card.className = "card job-card";
 
-  const title = job.title || "(title missing)";
-  const company = job.company || "(company missing)";
+  const title = job.title || "Untitled listing";
+  const company = job.company || "Company not listed";
   const location = job.location ? ` \u2014 ${job.location}` : "";
   const notes: string[] = (() => {
     try {
@@ -74,11 +74,11 @@ function render_actions(container: Element, job: Job, on_update?: () => void): v
   container.innerHTML = "";
 
   if (job.status === "pending") {
-    const apply_btn = make_btn("applied", "btn-success btn-sm", async () => {
+    const apply_btn = make_btn("Applied", "btn-success btn-sm", async () => {
       await set_status(job, "applied");
       on_update?.();
     });
-    const skip_btn = make_btn("skip", "btn-ghost btn-sm", async () => {
+    const skip_btn = make_btn("Skip", "btn-ghost btn-sm", async () => {
       await set_status(job, "skipped");
       on_update?.();
     });
@@ -90,7 +90,7 @@ function render_actions(container: Element, job: Job, on_update?: () => void): v
     badge.textContent = label;
     container.appendChild(badge);
 
-    const undo_btn = make_btn("undo", "btn-ghost btn-sm", async () => {
+    const undo_btn = make_btn("Undo", "btn-ghost btn-sm", async () => {
       await set_status(job, "pending");
       on_update?.();
     });
@@ -110,9 +110,9 @@ async function set_status(job: Job, status: string): Promise<void> {
   try {
     await api("PATCH", `/api/jobs/${encodeURIComponent(job.job_key)}`, { status });
     job.status = status;
-    show_toast(`marked as ${status}`);
+    show_toast(`Marked as ${status}`);
   } catch (err: any) {
-    show_toast(`error: ${err.message}`);
+    show_toast(`Error: ${err.message}`);
   }
 }
 

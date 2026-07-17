@@ -28,44 +28,44 @@ function create_settings_panel(): HTMLElement {
     <div class="settings-backdrop"></div>
     <div class="settings-drawer">
       <div class="settings-header">
-        <span class="page-title" style="font-size:1.1rem">settings</span>
-        <button class="btn btn-ghost btn-sm" data-action="close">close</button>
+        <span class="page-title" style="font-size:1.1rem">Settings</span>
+        <button class="btn btn-ghost btn-sm" data-action="close">Close</button>
       </div>
 
       <div>
-        <div class="form-label">theme</div>
+        <div class="form-label">Theme</div>
         <div class="theme-swatches">
-          <button class="theme-swatch" data-theme="dark">dark</button>
-          <button class="theme-swatch" data-theme="light">light</button>
+          <button class="theme-swatch" data-theme="dark">Dark</button>
+          <button class="theme-swatch" data-theme="light">Light</button>
         </div>
       </div>
 
       <div class="form-field">
         <div class="form-label-row">
-          <label class="form-label" for="s-query">email search filter</label>
-          <button class="btn btn-ghost btn-sm" data-action="open-builder">edit filter</button>
+          <label class="form-label" for="s-query">Email search filter</label>
+          <button class="btn btn-ghost btn-sm" data-action="open-builder">Edit filter</button>
         </div>
         <input class="input input-clickable" id="s-query" type="text" readonly />
-        <div class="form-hint">the gmail query used to find your job alert emails each sync</div>
+        <div class="form-hint">The Gmail query used to find your job-alert emails on each sync.</div>
       </div>
 
       <div class="form-field">
-        <label class="form-label" for="s-max-messages">messages per sync</label>
+        <label class="form-label" for="s-max-messages">Messages per sync</label>
         <input class="input" id="s-max-messages" type="number" min="1" max="200" />
-        <div class="form-hint">max number of emails to pull from gmail on each reload</div>
+        <div class="form-hint">Max number of emails to pull from Gmail on each reload.</div>
       </div>
 
       <div class="form-field">
-        <label class="form-label" for="s-max-apply">daily application target</label>
+        <label class="form-label" for="s-max-apply">Daily application target</label>
         <input class="input" id="s-max-apply" type="number" min="1" max="50" />
-        <div class="form-hint">your goal for applications per day</div>
+        <div class="form-hint">Your goal for applications per day.</div>
       </div>
 
       <div class="settings-wellness">
-        <strong>why set a limit?</strong> job searching today is exhausting — the process is more tedious, risky, and draining than it used to be. setting a daily target keeps things in perspective, prevents burnout, and helps you maintain consistent energy to keep pushing forward. take care of yourself first.
+        <strong>Why set a limit?</strong> Job searching today is exhausting — the process is more tedious, risky, and draining than it used to be. Setting a daily target keeps things in perspective, prevents burnout, and helps you maintain consistent energy to keep pushing forward. Take care of yourself first.
       </div>
 
-      <button class="btn btn-primary" data-action="save">save settings</button>
+      <button class="btn btn-primary" data-action="save">Save settings</button>
     </div>
   `;
 
@@ -105,7 +105,7 @@ function create_settings_panel(): HTMLElement {
     const theme = (document.documentElement.dataset.theme || "dark") as "dark" | "light";
 
     await api("PUT", "/api/settings", { gmail_query: query, max_messages, max_apply_today, theme });
-    show_toast("settings saved");
+    show_toast("Settings saved");
     panel.classList.remove("open");
   });
 
@@ -235,37 +235,37 @@ function open_filter_builder(current_query: string, on_apply: (query: string) =>
   function render(): void {
     modal.innerHTML = `
       <div class="fb-header">
-        <span class="page-title" style="font-size:1.1rem">filter builder</span>
+        <span class="page-title" style="font-size:1.1rem">Filter builder</span>
         <button class="btn btn-ghost btn-sm" data-action="fb-close">\u00d7</button>
       </div>
 
       <div class="fb-section">
-        <div class="form-label">email sources</div>
-        <div class="form-hint" style="margin-bottom:0.5rem">which job alert senders should we look for?</div>
+        <div class="form-label">Email sources</div>
+        <div class="form-hint" style="margin-bottom:0.5rem">Which job-alert senders should we look for?</div>
         <div class="fb-chips" id="fb-source-chips"></div>
       </div>
 
       <div class="fb-section">
-        <div class="form-label">custom sender</div>
-        <div class="form-hint" style="margin-bottom:0.5rem">add other job alert email addresses</div>
+        <div class="form-label">Custom sender</div>
+        <div class="form-hint" style="margin-bottom:0.5rem">Add other job-alert email addresses.</div>
         <div id="fb-custom-list"></div>
-        <button class="btn btn-ghost btn-sm" data-action="fb-add-custom" style="margin-top:0.35rem">+ add sender</button>
+        <button class="btn btn-ghost btn-sm" data-action="fb-add-custom" style="margin-top:0.35rem">+ Add sender</button>
       </div>
 
       <div class="fb-section">
-        <div class="form-label">time range</div>
-        <div class="form-hint" style="margin-bottom:0.5rem">how far back should we search?</div>
+        <div class="form-label">Time range</div>
+        <div class="form-hint" style="margin-bottom:0.5rem">How far back should we search?</div>
         <div class="fb-chips" id="fb-time-chips"></div>
       </div>
 
       <div class="fb-section fb-preview">
-        <div class="form-label">preview</div>
+        <div class="form-label">Preview</div>
         <code class="fb-preview-code" id="fb-preview"></code>
       </div>
 
       <div class="fb-actions">
-        <button class="btn btn-ghost" data-action="fb-cancel">cancel</button>
-        <button class="btn btn-primary" data-action="fb-apply">apply filter</button>
+        <button class="btn btn-ghost" data-action="fb-cancel">Cancel</button>
+        <button class="btn btn-primary" data-action="fb-apply">Apply filter</button>
       </div>
     `;
 

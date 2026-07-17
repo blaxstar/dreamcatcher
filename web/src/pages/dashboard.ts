@@ -50,17 +50,17 @@ export function render_dashboard(root: HTMLElement): void {
   header.className = "page-header";
   header.innerHTML = `
     <div>
-      <div class="page-title">dashboard</div>
-      <div class="page-subtitle">triage your job alerts</div>
+      <div class="page-title">Dashboard</div>
+      <div class="page-subtitle">Triage your job alerts</div>
     </div>
-    <button class="btn btn-ghost" id="reload-btn">reload from gmail</button>
+    <button class="btn btn-ghost" id="reload-btn">Reload from Gmail</button>
   `;
   root.appendChild(header);
 
   const tip = document.createElement("details");
   tip.className = "card tip-card";
   tip.innerHTML = `
-    <summary>tip: get better results</summary>
+    <summary>Tip: get better results</summary>
     <p><strong>LinkedIn:</strong> Go to Jobs &gt; Job Alerts &gt; edit each alert. Broaden keywords and enable "Email alert frequency: daily digest."</p>
     <p><strong>Indeed:</strong> Go to My Jobs &gt; Saved Searches. Edit or create searches with broader terms. Set email frequency to daily.</p>
     <p>More alerts = more data for Dreamcatcher to triage. Broader searches are fine — the risk scoring filters out the noise.</p>
@@ -106,7 +106,7 @@ async function load_jobs(root: HTMLElement, reload: boolean): Promise<void> {
   const reload_btn = document.getElementById("reload-btn") as HTMLButtonElement;
   if (reload) {
     reload_btn.disabled = true;
-    reload_btn.textContent = "loading...";
+    reload_btn.textContent = "Loading…";
   }
 
   try {
@@ -123,7 +123,7 @@ async function load_jobs(root: HTMLElement, reload: boolean): Promise<void> {
     list.innerHTML = `<div class="alert alert-err">${err.message}</div>`;
   } finally {
     reload_btn.disabled = false;
-    reload_btn.textContent = "reload from gmail";
+    reload_btn.textContent = "Reload from Gmail";
   }
 }
 
@@ -131,19 +131,19 @@ function render_stats(el: HTMLElement, stats: JobsResponse["stats"]): void {
   el.innerHTML = `
     <div class="stat-card">
       <div class="stat-value">${stats.total}</div>
-      <div class="stat-label">total</div>
+      <div class="stat-label">Total</div>
     </div>
     <div class="stat-card">
       <div class="stat-value">${stats.pending}</div>
-      <div class="stat-label">pending</div>
+      <div class="stat-label">Pending</div>
     </div>
     <div class="stat-card">
       <div class="stat-value" style="color:var(--green)">${stats.applied}</div>
-      <div class="stat-label">applied</div>
+      <div class="stat-label">Applied</div>
     </div>
     <div class="stat-card">
       <div class="stat-value" style="color:var(--t2)">${stats.skipped}</div>
-      <div class="stat-label">skipped</div>
+      <div class="stat-label">Skipped</div>
     </div>
   `;
 }
@@ -153,11 +153,11 @@ function render_tabs(root: HTMLElement, data: JobsResponse): void {
   const list = document.getElementById("job-list")!;
 
   const tab_defs: { id: string; label: string }[] = [
-    { id: "top", label: "top picks" },
-    { id: "all", label: "all" },
-    { id: "applied", label: "applied" },
-    { id: "skipped", label: "skipped" },
-    { id: "risky", label: "risky" },
+    { id: "top", label: "Top picks" },
+    { id: "all", label: "All" },
+    { id: "applied", label: "Applied" },
+    { id: "skipped", label: "Skipped" },
+    { id: "risky", label: "Risky" },
   ];
 
   tabs_el.innerHTML = "";
@@ -188,7 +188,7 @@ function render_source_filter(data: JobsResponse): void {
 
   const heading = document.createElement("span");
   heading.className = "source-filter-label";
-  heading.textContent = "show";
+  heading.textContent = "Show";
   el.appendChild(heading);
 
   for (const src of sources) {
@@ -257,7 +257,7 @@ function render_job_list(el: HTMLElement, data: JobsResponse): void {
     el.innerHTML = `
       <div class="empty">
         <div class="empty-icon">&#x1F4AD;</div>
-        <div class="empty-title">no jobs here</div>
+        <div class="empty-title">No jobs here</div>
       </div>
     `;
     return;

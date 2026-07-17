@@ -3,8 +3,8 @@ export function render_login(root: HTMLElement): void {
     <div class="login-wrap">
       <div class="login-card">
         <div class="login-logo-mark">dc</div>
-        <div class="login-title">dreamcatcher</div>
-        <div class="login-sub">sign in to triage your job alerts</div>
+        <div class="login-title">Dreamcatcher</div>
+        <div class="login-sub">Sign in to triage your job alerts</div>
         <div style="margin-top: 1.75rem;">
           <a href="/auth/google" class="btn btn-primary btn-block">Sign in with Google</a>
         </div>

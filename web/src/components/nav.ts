@@ -15,12 +15,12 @@ export function create_nav(on_settings: () => void): HTMLElement {
   nav.innerHTML = `
     <a class="nav-logo" href="#/">
       <div class="nav-logo-mark">dc</div>
-      dreamcatcher
+      Dreamcatcher
     </a>
 
-    <div class="nav-section">triage</div>
+    <div class="nav-section">Triage</div>
     <a class="nav-link ${path === "/" ? "active" : ""}" href="#/">
-      dashboard
+      Dashboard
     </a>
 
     <div class="nav-footer">
@@ -28,8 +28,9 @@ export function create_nav(on_settings: () => void): HTMLElement {
         <div class="avatar">${avatar_content}</div>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${user?.display_name || user?.email || ""}</span>
       </div>
-      <button class="nav-link" data-action="settings">settings</button>
-      <button class="nav-link" data-action="logout">sign out</button>
+      <button class="nav-link" data-action="settings">Settings</button>
+      <button class="nav-link" data-action="logout">Sign out</button>
+      <a class="nav-link nav-link-muted" href="/privacy" target="_blank" rel="noopener">Privacy policy</a>
     </div>
   `;
 
