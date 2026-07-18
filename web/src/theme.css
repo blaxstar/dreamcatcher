@@ -534,6 +534,47 @@ a:hover {
   color: var(--t3);
 }
 
+.source-chip.is-empty {
+  opacity: 0.45;
+}
+
+/* ── dashboard controls (location / employer / bulk actions) ── */
+.dash-controls {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.dash-controls:empty {
+  display: none;
+}
+
+.control-select {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.control-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--t3);
+}
+
+.control-select .input-sm {
+  min-width: 160px;
+}
+
+.control-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
 /* ── tabs ────────────────────────────────────────────────── */
 .tabs {
   display: flex;
@@ -614,6 +655,15 @@ a:hover {
   height: 28px;
   display: block;
   flex-shrink: 0;
+}
+
+/* Logo marks are the swirl as a CSS mask, tinted with the theme accent so they
+   recolor automatically between light and dark mode. */
+.nav-logo-mark,
+.topbar-mark,
+.login-logo-mark {
+  background: var(--accent);
+  mask: url("/swirl-mask.svg") center / contain no-repeat;
 }
 
 .nav-section {

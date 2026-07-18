@@ -310,3 +310,34 @@ export function update_job_status(
     .run(status, Date.now(), user_email, job_key);
   return result.changes > 0;
 }
+
+// Days after which a still-pending listing is considered "stale" (likely filled
+// or expired). Also treat frequently-reposted listings as stale.
+const STALE_AFTER_DAYS = 30;
+const STALE_TIMES_SEEN = 5;
+
+/**
+ * Bulk-skip pending jobs. scope "pending" clears every pending job; scope
+ * "stale" clears only pending jobs that are old or reposted many times.
+ * Returns the number of jobs skipped.
+ */
+export function clear_jobs(
+  user_email: string,
+  scope: "pending" | "stale",
+  now: number = Date.now(),
+): number {
+  if (scope === "pending") {
+    return db
+      .prepare(
+        "UPDATE jobs SET status = 'skipped', updated_at = ? WHERE user_email = ? AND status = 'pending'",
+      )
+      .run(now, user_email).changes;
+  }
+  const cutoff = now - STALE_AFTER_DAYS * 24 * 60 * 60 * 1000;
+  return db
+    .prepare(
+      `UPDATE jobs SET status = 'skipped', updated_at = ?
+       WHERE user_email = ? AND status = 'pending' AND (first_seen <= ? OR times_seen >= ?)`,
+    )
+    .run(now, user_email, cutoff, STALE_TIMES_SEEN).changes;
+}

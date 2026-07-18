@@ -41,7 +41,7 @@ async function boot(): Promise<void> {
     <button class="topbar-toggle" aria-label="Open menu" aria-expanded="false">
       <span></span><span></span><span></span>
     </button>
-    <div class="topbar-title"><img class="topbar-mark" src="/favicon.svg" alt="" /> Dreamcatcher</div>
+    <div class="topbar-title"><span class="topbar-mark" aria-hidden="true"></span> Dreamcatcher</div>
   `;
 
   const backdrop = document.createElement("div");

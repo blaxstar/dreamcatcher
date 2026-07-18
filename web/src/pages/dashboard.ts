@@ -29,7 +29,13 @@ const SOURCE_LABELS: Record<string, string> = {
   monster: "Monster",
   unknown: "Other",
 };
+// Always offer these boards as filter options, even when a sync returned none.
+const ALL_SOURCES = ["linkedin", "indeed", "glassdoor", "ziprecruiter", "monster"];
 const hidden_sources = new Set<string>(load_hidden_sources());
+
+// Location / employer filters (reset each load; "" = all).
+let selected_location = "";
+let selected_employer = "";
 
 function load_hidden_sources(): string[] {
   try {
@@ -77,6 +83,11 @@ export function render_dashboard(root: HTMLElement): void {
   source_filter.id = "source-filter";
   root.appendChild(source_filter);
 
+  const controls = document.createElement("div");
+  controls.className = "dash-controls";
+  controls.id = "dash-controls";
+  root.appendChild(controls);
+
   const tabs = document.createElement("div");
   tabs.className = "tabs";
   tabs.id = "job-tabs";
@@ -117,6 +128,7 @@ async function load_jobs(root: HTMLElement, reload: boolean): Promise<void> {
 
     render_stats(stats_bar, data.stats);
     render_source_filter(data);
+    render_controls(root, data);
     render_tabs(root, data);
     render_job_list(list, data);
   } catch (err: any) {
@@ -181,10 +193,9 @@ function render_source_filter(data: JobsResponse): void {
 
   const counts = new Map<string, number>();
   for (const j of data.jobs) counts.set(j.source, (counts.get(j.source) || 0) + 1);
-  const sources = [...counts.keys()].sort();
-
-  // Nothing to filter if everything is from one place.
-  if (sources.length <= 1) return;
+  // Always list the known boards, then any extra sources present (e.g. "unknown").
+  const extras = [...counts.keys()].filter((s) => !ALL_SOURCES.includes(s)).sort();
+  const sources = [...ALL_SOURCES, ...extras];
 
   const heading = document.createElement("span");
   heading.className = "source-filter-label";
@@ -192,8 +203,9 @@ function render_source_filter(data: JobsResponse): void {
   el.appendChild(heading);
 
   for (const src of sources) {
+    const n = counts.get(src) || 0;
     const chip = document.createElement("label");
-    chip.className = "source-chip";
+    chip.className = `source-chip${n === 0 ? " is-empty" : ""}`;
 
     const box = document.createElement("input");
     box.type = "checkbox";
@@ -212,18 +224,132 @@ function render_source_filter(data: JobsResponse): void {
 
     const count = document.createElement("span");
     count.className = "source-count";
-    count.textContent = String(counts.get(src));
+    count.textContent = String(n);
 
     chip.append(box, badge, count);
     el.appendChild(chip);
   }
 }
 
+function render_controls(root: HTMLElement, data: JobsResponse): void {
+  const el = document.getElementById("dash-controls");
+  if (!el) return;
+  el.innerHTML = "";
+
+  const distinct = (pick: (j: Job) => string | null): string[] =>
+    [...new Set(data.jobs.map(pick).filter((v): v is string => !!v && v.trim() !== ""))].sort(
+      (a, b) => a.localeCompare(b),
+    );
+
+  const make_select = (
+    label: string,
+    values: string[],
+    current: string,
+    on_change: (v: string) => void,
+  ): HTMLElement => {
+    const wrap = document.createElement("label");
+    wrap.className = "control-select";
+    const cap = document.createElement("span");
+    cap.className = "control-label";
+    cap.textContent = label;
+    const sel = document.createElement("select");
+    sel.className = "input input-sm";
+    sel.innerHTML =
+      `<option value="">All</option>` +
+      values.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+    sel.value = current;
+    sel.addEventListener("change", () => {
+      on_change(sel.value);
+      const list = document.getElementById("job-list");
+      if (list) render_job_list(list, data);
+    });
+    wrap.append(cap, sel);
+    return wrap;
+  };
+
+  el.appendChild(
+    make_select(
+      "Location",
+      distinct((j) => j.location),
+      selected_location,
+      (v) => {
+        selected_location = v;
+      },
+    ),
+  );
+  el.appendChild(
+    make_select(
+      "Employer",
+      distinct((j) => j.company),
+      selected_employer,
+      (v) => {
+        selected_employer = v;
+      },
+    ),
+  );
+
+  // Bulk-clear actions.
+  const actions = document.createElement("div");
+  actions.className = "control-actions";
+  const clear_stale = make_btn("Clear stale", "btn-ghost btn-sm", () =>
+    bulk_clear(root, "stale", "Skip old or frequently-reposted pending jobs?"),
+  );
+  const clear_pending = make_btn("Clear pending", "btn-ghost btn-sm", () =>
+    bulk_clear(root, "pending", "Skip ALL pending jobs? You can undo each individually."),
+  );
+  actions.append(clear_stale, clear_pending);
+  el.appendChild(actions);
+}
+
+function make_btn(text: string, cls: string, onclick: () => void): HTMLButtonElement {
+  const btn = document.createElement("button");
+  btn.className = `btn ${cls}`;
+  btn.textContent = text;
+  btn.addEventListener("click", onclick);
+  return btn;
+}
+
+async function bulk_clear(
+  root: HTMLElement,
+  scope: "pending" | "stale",
+  confirm_msg: string,
+): Promise<void> {
+  if (!window.confirm(confirm_msg)) return;
+  try {
+    const { cleared } = await api<{ cleared: number }>("POST", "/api/jobs/clear", { scope });
+    show_toast(cleared === 1 ? "1 job skipped" : `${cleared} jobs skipped`);
+    load_jobs(root, false);
+  } catch (err: any) {
+    show_toast(`Error: ${err.message}`);
+  }
+}
+
+function show_toast(msg: string): void {
+  const existing = document.querySelector(".toast");
+  if (existing) existing.remove();
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2000);
+}
+
+function esc(s: string): string {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
 function render_job_list(el: HTMLElement, data: JobsResponse): void {
   el.innerHTML = "";
 
-  // Apply the source (site) filter before anything else.
-  const visible = data.jobs.filter((j) => !hidden_sources.has(j.source));
+  // Apply the source / location / employer filters before the tab filter.
+  const visible = data.jobs.filter(
+    (j) =>
+      !hidden_sources.has(j.source) &&
+      (!selected_location || j.location === selected_location) &&
+      (!selected_employer || j.company === selected_employer),
+  );
 
   let filtered: Job[];
 

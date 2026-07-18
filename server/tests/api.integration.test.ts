@@ -289,6 +289,73 @@ describe("PATCH /api/jobs/:key", () => {
   });
 });
 
+describe("POST /api/jobs/clear", () => {
+  const clear = (scope: string, email = USER) =>
+    api("/api/jobs/clear", { cookie: session(email), method: "POST", body: { scope } });
+
+  it("rejects an invalid scope", async () => {
+    const res = await clear("everything");
+    expect(res.status).toBe(400);
+  });
+
+  it("clears every pending job but leaves applied/skipped alone", async () => {
+    seed_job(USER, "p1");
+    seed_job(USER, "p2");
+    seed_job(USER, "done");
+    await api("/api/jobs/done", {
+      cookie: session(USER),
+      method: "PATCH",
+      body: { status: "applied" },
+    });
+
+    const res = await clear("pending");
+    expect(res.status).toBe(200);
+    expect(res.body.cleared).toBe(2);
+
+    const list = await api("/api/jobs", { cookie: session(USER) });
+    const byKey = Object.fromEntries(list.body.jobs.map((j: any) => [j.job_key, j.status]));
+    expect(byKey.p1).toBe("skipped");
+    expect(byKey.p2).toBe("skipped");
+    expect(byKey.done).toBe("applied"); // untouched
+  });
+
+  it("clears only stale/reposted pending jobs when scope is 'stale'", async () => {
+    seed_job(USER, "fresh");
+    seed_job(USER, "old");
+    seed_job(USER, "reposted");
+    const db = get_db();
+    db.prepare("UPDATE jobs SET first_seen = ? WHERE user_email = ? AND job_key = ?").run(
+      Date.now() - 40 * DAY,
+      USER,
+      "old",
+    );
+    db.prepare("UPDATE jobs SET times_seen = ? WHERE user_email = ? AND job_key = ?").run(
+      6,
+      USER,
+      "reposted",
+    );
+
+    const res = await clear("stale");
+    expect(res.body.cleared).toBe(2);
+
+    const list = await api("/api/jobs", { cookie: session(USER) });
+    const byKey = Object.fromEntries(list.body.jobs.map((j: any) => [j.job_key, j.status]));
+    expect(byKey.fresh).toBe("pending"); // recent, not cleared
+    expect(byKey.old).toBe("skipped");
+    expect(byKey.reposted).toBe("skipped");
+  });
+
+  it("never clears another user's jobs", async () => {
+    seed_job(USER, "mine");
+    seed_job(OTHER_USER, "theirs");
+
+    await clear("pending", USER);
+
+    const bobs = await api("/api/jobs", { cookie: session(OTHER_USER) });
+    expect(bobs.body.jobs[0].status).toBe("pending");
+  });
+});
+
 describe("settings", () => {
   it("returns defaults for a user who has never saved settings", async () => {
     const res = await api("/api/settings", { cookie: session(USER) });

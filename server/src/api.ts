@@ -2,6 +2,7 @@ import { type Request, type Response, Router } from "express";
 import { require_auth } from "./auth.js";
 import type { server_config } from "./config.js";
 import {
+  clear_jobs,
   get_jobs,
   get_user,
   get_user_settings,
@@ -138,6 +139,18 @@ export function api_router(cfg: server_config): Router {
     }
 
     res.json({ ok: true });
+  });
+
+  // POST /api/jobs/clear — bulk-skip pending jobs ("pending" = all, "stale" = old/reposted)
+  router.post("/jobs/clear", (req: Request, res: Response) => {
+    const email = res.locals.user_email as string;
+    const scope = req.body?.scope;
+    if (scope !== "pending" && scope !== "stale") {
+      res.status(400).json({ error: "scope must be 'pending' or 'stale'" });
+      return;
+    }
+    const cleared = clear_jobs(email, scope);
+    res.json({ cleared });
   });
 
   // GET /api/settings

@@ -2,7 +2,7 @@ export function render_login(root: HTMLElement): void {
   root.innerHTML = `
     <div class="login-wrap">
       <div class="login-card">
-        <img class="login-logo-mark" src="/favicon.svg" alt="Dreamcatcher" />
+        <span class="login-logo-mark" aria-hidden="true"></span>
         <div class="login-title">Dreamcatcher</div>
         <div class="login-sub">Sign in to triage your job alerts</div>
         <div style="margin-top: 1.75rem;">
