@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import { decrypt, encrypt } from "./crypto.js";
 import type { db_job, db_user, job_item, job_status, user_settings } from "./types.js";
 
 const SCHEMA = `
@@ -152,11 +153,25 @@ export function upsert_user(
       refresh_token = COALESCE(excluded.refresh_token, users.refresh_token),
       token_expiry = excluded.token_expiry,
       updated_at = excluded.updated_at
-  `).run(email, display_name, picture_url, access_token, refresh_token, token_expiry, now, now);
+  `).run(
+    email,
+    display_name,
+    picture_url,
+    encrypt(access_token),
+    encrypt(refresh_token),
+    token_expiry,
+    now,
+    now,
+  );
 }
 
 export function get_user(email: string): db_user | undefined {
-  return db.prepare("SELECT * FROM users WHERE email = ?").get(email) as db_user | undefined;
+  const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as db_user | undefined;
+  if (user) {
+    user.access_token = decrypt(user.access_token) as string;
+    user.refresh_token = decrypt(user.refresh_token);
+  }
+  return user;
 }
 
 export function update_user_tokens(
@@ -174,10 +189,25 @@ export function update_user_tokens(
       );
 
   if (refresh_token) {
-    stmt.run(access_token, refresh_token, token_expiry, Date.now(), email);
+    stmt.run(encrypt(access_token), encrypt(refresh_token), token_expiry, Date.now(), email);
   } else {
-    stmt.run(access_token, token_expiry, Date.now(), email);
+    stmt.run(encrypt(access_token), token_expiry, Date.now(), email);
   }
+}
+
+export function count_jobs(email: string): number {
+  return (
+    db.prepare("SELECT COUNT(*) AS n FROM jobs WHERE user_email = ?").get(email) as { n: number }
+  ).n;
+}
+
+/** Erase a user and everything tied to them (jobs + tokens). */
+export function delete_user(email: string): void {
+  const wipe = db.transaction((e: string) => {
+    db.prepare("DELETE FROM jobs WHERE user_email = ?").run(e);
+    db.prepare("DELETE FROM users WHERE email = ?").run(e);
+  });
+  wipe(email);
 }
 
 export function get_user_settings(email: string): user_settings | null {
@@ -315,6 +345,17 @@ export function update_job_status(
 // or expired). Also treat frequently-reposted listings as stale.
 const STALE_AFTER_DAYS = 30;
 const STALE_TIMES_SEEN = 5;
+
+// We don't hoard data: jobs you skipped are forgotten after this long.
+const SKIPPED_RETENTION_DAYS = 60;
+
+/** Delete jobs the user skipped more than SKIPPED_RETENTION_DAYS ago. */
+export function purge_old_skipped(email: string, now: number = Date.now()): number {
+  const cutoff = now - SKIPPED_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  return db
+    .prepare("DELETE FROM jobs WHERE user_email = ? AND status = 'skipped' AND updated_at <= ?")
+    .run(email, cutoff).changes;
+}
 
 /**
  * Bulk-skip pending jobs. scope "pending" clears every pending job; scope

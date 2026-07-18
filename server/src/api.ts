@@ -1,17 +1,21 @@
 import { type Request, type Response, Router } from "express";
-import { require_auth } from "./auth.js";
+import { require_auth, SESSION_COOKIE } from "./auth.js";
 import type { server_config } from "./config.js";
 import {
   clear_jobs,
+  count_jobs,
+  delete_user,
   get_jobs,
   get_user,
   get_user_settings,
+  purge_old_skipped,
   update_job_status,
   update_user_settings,
   update_user_tokens,
   upsert_job,
 } from "./db.js";
 import { create_oauth2_client, fetch_jobs_from_gmail } from "./gmail.js";
+import { is_safe_job_query } from "./query.js";
 import { apply_repost_risk, job_key } from "./scoring.js";
 import type { user_settings } from "./types.js";
 import { DEFAULT_SETTINGS } from "./types.js";
@@ -55,7 +59,10 @@ export function api_router(cfg: server_config): Router {
         });
 
         const settings = get_user_settings(email);
-        const query = settings?.gmail_query || DEFAULT_SETTINGS.gmail_query;
+        const stored_query = settings?.gmail_query || DEFAULT_SETTINGS.gmail_query;
+        // Never run a query that reaches beyond specific senders, even if one was
+        // somehow stored. Fall back to the safe default.
+        const query = is_safe_job_query(stored_query) ? stored_query : DEFAULT_SETTINGS.gmail_query;
         const max = settings?.max_messages || DEFAULT_SETTINGS.max_messages;
 
         const items = await fetch_jobs_from_gmail(oauth2, query, max);
@@ -64,6 +71,9 @@ export function api_router(cfg: server_config): Router {
           const key = job_key(item);
           upsert_job(email, key, item);
         }
+
+        // Housekeeping: forget jobs the user skipped long ago.
+        purge_old_skipped(email);
       } catch (err: any) {
         console.error("Gmail fetch error:", err?.message || err);
         res
@@ -169,6 +179,14 @@ export function api_router(cfg: server_config): Router {
       "max_apply_today",
       "theme",
     ];
+    // Reject any search that isn't limited to specific senders.
+    if (req.body.gmail_query !== undefined && !is_safe_job_query(req.body.gmail_query)) {
+      res.status(400).json({
+        error: "Search can only filter by sender (from:) — it can't search your whole inbox.",
+      });
+      return;
+    }
+
     const update: Partial<user_settings> = {};
 
     for (const key of allowed_keys) {
@@ -180,6 +198,53 @@ export function api_router(cfg: server_config): Router {
     update_user_settings(email, update);
     const settings = get_user_settings(email);
     res.json({ ...DEFAULT_SETTINGS, ...settings });
+  });
+
+  // GET /api/account — a plain summary of what we store about you
+  router.get("/account", (req: Request, res: Response) => {
+    const email = res.locals.user_email as string;
+    const user = get_user(email);
+    if (!user) {
+      res.status(404).json({ error: "user not found" });
+      return;
+    }
+    res.json({
+      email: user.email,
+      display_name: user.display_name,
+      connected_since: user.created_at,
+      job_count: count_jobs(email),
+    });
+  });
+
+  // GET /api/account/export — download everything we hold (never any tokens)
+  router.get("/account/export", (req: Request, res: Response) => {
+    const email = res.locals.user_email as string;
+    const user = get_user(email);
+    if (!user) {
+      res.status(404).json({ error: "user not found" });
+      return;
+    }
+    const jobs = get_jobs(email).map(({ id, user_email, ...job }) => job);
+    res.setHeader("Content-Disposition", 'attachment; filename="dreamcatcher-data.json"');
+    res.json({
+      exported_at: new Date().toISOString(),
+      note: "This is everything Dreamcatcher stores about you. Your emails are not here because they are never saved.",
+      profile: {
+        email: user.email,
+        display_name: user.display_name,
+        connected_since: user.created_at,
+      },
+      settings: get_user_settings(email),
+      jobs,
+    });
+  });
+
+  // POST /api/account/delete — disconnect and erase everything
+  router.post("/account/delete", (req: Request, res: Response) => {
+    const email = res.locals.user_email as string;
+    delete_user(email);
+    res.clearCookie(SESSION_COOKIE);
+    res.json({ ok: true });
   });
 
   return router;

@@ -1,4 +1,5 @@
 import { api } from "../api.js";
+import { delete_account, download_my_data, get_account } from "../auth.js";
 
 type Settings = {
   gmail_query: string;
@@ -66,6 +67,30 @@ function create_settings_panel(): HTMLElement {
       </div>
 
       <button class="btn btn-primary" data-action="save">Save settings</button>
+
+      <div class="privacy-box">
+        <div class="form-label">Your data &amp; privacy</div>
+        <p class="form-hint" id="privacy-summary">
+          Dreamcatcher never saves your emails. It reads your job-alert emails, grabs the
+          listings, and forgets the rest.
+        </p>
+        <p class="form-hint">Here's the little it does keep on the server:</p>
+        <ul class="privacy-list" id="privacy-stored">
+          <li>Your Google name and email (so you can sign in)</li>
+          <li>The job listings it found — title, company, and link</li>
+        </ul>
+        <div class="privacy-actions">
+          <button class="btn btn-ghost btn-sm" data-action="download">Download my data</button>
+          <button class="btn btn-danger btn-sm" data-action="delete">Disconnect &amp; delete everything</button>
+        </div>
+        <p class="form-hint">
+          Deleting wipes your data from the server and signs you out. You can also cut off
+          access anytime from your
+          <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account</a>,
+          and read the full
+          <a href="/privacy" target="_blank" rel="noopener">privacy policy</a>.
+        </p>
+      </div>
     </div>
   `;
 
@@ -109,10 +134,48 @@ function create_settings_panel(): HTMLElement {
     panel.classList.remove("open");
   });
 
-  // Load current settings
+  // Download my data
+  panel
+    .querySelector('[data-action="download"]')
+    ?.addEventListener("click", () => download_my_data());
+
+  // Disconnect & delete everything
+  panel.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
+    if (
+      !window.confirm(
+        "Delete everything and disconnect?\n\nThis erases your data from the server and signs you out. It can't be undone.",
+      )
+    ) {
+      return;
+    }
+    try {
+      await delete_account();
+    } catch (err: any) {
+      show_toast(`Error: ${err.message}`);
+    }
+  });
+
+  // Load current settings + data summary
   load_settings(panel);
+  load_account(panel);
 
   return panel;
+}
+
+async function load_account(panel: HTMLElement): Promise<void> {
+  try {
+    const acct = await get_account();
+    const stored = panel.querySelector("#privacy-stored");
+    if (stored) {
+      const n = acct.job_count;
+      stored.innerHTML = `
+        <li>Your Google name and email (so you can sign in)</li>
+        <li>${n} job listing${n === 1 ? "" : "s"} it found — title, company, and link</li>
+      `;
+    }
+  } catch {
+    // leave the default copy
+  }
 }
 
 async function load_settings(panel: HTMLElement): Promise<void> {

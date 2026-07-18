@@ -393,6 +393,26 @@ describe("settings", () => {
     expect(res.body.email).toBeUndefined();
   });
 
+  it("rejects a Gmail query that isn't limited to specific senders", async () => {
+    const res = await api("/api/settings", {
+      cookie: session(USER),
+      method: "PUT",
+      body: { gmail_query: "subject:invoice has:attachment" },
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/from:/);
+  });
+
+  it("accepts a sender-scoped Gmail query", async () => {
+    const res = await api("/api/settings", {
+      cookie: session(USER),
+      method: "PUT",
+      body: { gmail_query: "newer_than:7d from:(alert@indeed.com)" },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.gmail_query).toBe("newer_than:7d from:(alert@indeed.com)");
+  });
+
   it("keeps each user's settings separate", async () => {
     await api("/api/settings", {
       cookie: session(USER),
@@ -402,6 +422,50 @@ describe("settings", () => {
 
     const bobs = await api("/api/settings", { cookie: session(OTHER_USER) });
     expect(bobs.body.max_apply_today).toBe(DEFAULT_SETTINGS.max_apply_today);
+  });
+});
+
+describe("account data & deletion", () => {
+  it("summarizes what is stored about the user", async () => {
+    seed_job(USER, "a");
+    seed_job(USER, "b");
+    const res = await api("/api/account", { cookie: session(USER) });
+    expect(res.status).toBe(200);
+    expect(res.body.email).toBe(USER);
+    expect(res.body.job_count).toBe(2);
+    expect(res.body.connected_since).toBeGreaterThan(0);
+  });
+
+  it("exports the user's data without any tokens", async () => {
+    seed_job(USER, "a", { title: "Engineer" });
+    const res = await api("/api/account/export", { cookie: session(USER) });
+    expect(res.status).toBe(200);
+    expect(res.body.jobs).toHaveLength(1);
+    expect(res.body.jobs[0].title).toBe("Engineer");
+    // No token/credential material anywhere in the export.
+    const dump = JSON.stringify(res.body).toLowerCase();
+    expect(dump).not.toContain("access-token");
+    expect(dump).not.toContain("refresh-token");
+    expect(dump).not.toContain("access_token");
+  });
+
+  it("deletes everything for the user and no one else", async () => {
+    seed_job(USER, "mine");
+    seed_job(OTHER_USER, "theirs");
+
+    const del = await api("/api/account/delete", { cookie: session(USER), method: "POST" });
+    expect(del.status).toBe(200);
+
+    // The user and their jobs are gone.
+    expect(get_db().prepare("SELECT * FROM users WHERE email = ?").get(USER)).toBeUndefined();
+    expect(
+      get_db().prepare("SELECT COUNT(*) AS n FROM jobs WHERE user_email = ?").get(USER),
+    ).toEqual({ n: 0 });
+
+    // Bob is untouched.
+    expect(get_db().prepare("SELECT email FROM users WHERE email = ?").get(OTHER_USER)).toEqual({
+      email: OTHER_USER,
+    });
   });
 });
 

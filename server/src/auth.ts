@@ -11,7 +11,7 @@ const SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile",
 ];
 
-const SESSION_COOKIE = "dreamcatcher_session";
+export const SESSION_COOKIE = "dreamcatcher_session";
 const STATE_COOKIE = "dreamcatcher_oauth_state";
 
 export function require_auth(cfg: server_config) {

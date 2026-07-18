@@ -1020,6 +1020,30 @@ a:hover {
   color: var(--t1);
 }
 
+.privacy-box {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.privacy-list {
+  margin: 0.5rem 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--t2);
+}
+
+.privacy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.85rem 0;
+}
+
 .theme-swatches {
   display: flex;
   gap: 0.5rem;

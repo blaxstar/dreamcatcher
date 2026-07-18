@@ -28,6 +28,13 @@ app.get("/privacy", (_req, res) => {
   res.sendFile(path.join(static_dir, "privacy.html"));
 });
 
+// Security contact. sendFile ignores dot-segments by default, so allow them here.
+app.get("/.well-known/security.txt", (_req, res) => {
+  res
+    .type("text/plain")
+    .sendFile(path.join(static_dir, ".well-known/security.txt"), { dotfiles: "allow" });
+});
+
 app.use(express.static(static_dir));
 
 // SPA fallback — serve index.html for all non-API routes
