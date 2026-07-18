@@ -8,16 +8,16 @@ can triage and apply without drowning. That's it. No accounts to pay for, no ads
 nothing to sell.
 
 I built this because the last time I had to job-hunt, I wished something like it
-existed. It's open source so you never have to wonder what it's doing with your email —
+existed. It's open source so you never have to wonder what it's doing with your email;
 you can just read the code.
 
 ## The privacy promise, in plain words
 
 Email is sensitive, so here's exactly how this is handled:
 
-- **Read-only access.** Google only ever lets it *look* at your mail. It can't send,
+- **Read-only access.** Google only ever lets it _look_ at your mail. It can't send,
   delete, or change anything.
-- **Only your job alerts.** The server is built so it can only search Gmail *by sender*
+- **Only your job alerts.** The server is built so it can only search Gmail _by sender_
   (LinkedIn, Indeed, etc.). It cannot search your whole inbox — that's enforced in code
   ([`server/src/query.ts`](server/src/query.ts)), not just promised.
 - **Your emails are never stored.** It reads an alert, grabs the job's title, company,
@@ -30,12 +30,11 @@ Email is sensitive, so here's exactly how this is handled:
 - **You're in control.** Download everything or delete everything, anytime, from
   Settings. Skipped jobs are auto-forgotten after 60 days.
 
-The full policy is at [`/privacy`](web/public/privacy.html), and it's written like a
-human, not a lawyer.
+The full policy is at [`/privacy`](web/public/privacy.html) (and it's written in the clearest, simplest, non-lawyer english i could muster).
 
 ## Run your own copy
 
-The surest privacy is running it yourself — then your data never touches anyone else's
+The surest privacy is running it yourself; then your data never touches anyone else's
 server.
 
 Requirements: Node 18+ and a Google Cloud OAuth client (Gmail read-only scope).
@@ -52,14 +51,14 @@ npm run start                # serves the app + API on the configured port
 
 Set these in `.env`:
 
-| Variable | What it's for |
-|---|---|
-| `JWT_SECRET` | Signs your login session. Use a long random string. |
-| `ENCRYPTION_KEY` | Encrypts stored Google tokens. Long random string (falls back to `JWT_SECRET` if unset). |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Your Google OAuth client. |
-| `GOOGLE_REDIRECT_URI` | e.g. `https://yourdomain/auth/callback`. |
-| `COOKIE_SECURE` | `true` when serving over HTTPS. |
-| `DB_PATH` | Where the SQLite file lives. |
+| Variable                                    | What it's for                                                                                                      |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `JWT_SECRET`                                | Signs your login session. Use a long random string; I recommend the output from the command `openssl rand -hex 32` |
+| `ENCRYPTION_KEY`                            | Encrypts stored Google tokens. Long random string (falls back to `JWT_SECRET` if unset).                           |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Your Google OAuth client.                                                                                          |
+| `GOOGLE_REDIRECT_URI`                       | e.g. `https://yourdomain/auth/callback`.                                                                           |
+| `COOKIE_SECURE`                             | `true` when serving over HTTPS.                                                                                    |
+| `DB_PATH`                                   | Where the SQLite file lives.                                                                                       |
 
 For development, `npm run dev` runs the API and the web app with hot reload.
 
@@ -82,8 +81,8 @@ The pieces worth reading if you're checking the privacy claims:
 ## Contributing & security
 
 Found a bug or a security issue? See [`SECURITY.md`](SECURITY.md). PRs and issues
-welcome — especially anything that makes the privacy story tighter.
+welcome; especially anything that makes the privacy story tighter.
 
 ## License
 
-MIT — do what you like with it. If it helps you land something, that's the whole point.
+MIT; do what you like with it. If it helps you land something, that's the whole point. :)
