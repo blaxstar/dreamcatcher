@@ -150,7 +150,7 @@ export function upsert_user(
       display_name = excluded.display_name,
       picture_url = excluded.picture_url,
       access_token = excluded.access_token,
-      refresh_token = COALESCE(excluded.refresh_token, users.refresh_token),
+      refresh_token = excluded.refresh_token,
       token_expiry = excluded.token_expiry,
       updated_at = excluded.updated_at
   `).run(

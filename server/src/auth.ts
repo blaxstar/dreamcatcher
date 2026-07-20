@@ -98,14 +98,18 @@ export function auth_router(cfg: server_config): Router {
         return;
       }
 
-      // Persist user + tokens
+      // Persist user + tokens. Google sometimes omits expiry_date; default to
+      // 1 hour from now so the OAuth2 client never treats a fresh token as expired
+      // and tries to refresh prematurely (which fails if the refresh_token is stale).
+      const expiry = tokens.expiry_date || Date.now() + 3600 * 1000;
+
       upsert_user(
         profile.email,
         profile.name || null,
         profile.picture || null,
         tokens.access_token!,
         tokens.refresh_token || null,
-        tokens.expiry_date || null,
+        expiry,
       );
 
       // Issue session JWT
