@@ -144,7 +144,10 @@ export async function fetch_jobs_from_gmail(
         const company = card.company || fallback.company;
         const location = card.location || fallback.location;
         const link = card.link || fallback.link;
-        const notes = fallback.notes;
+        // Drop fallback notes when the HTML parser already extracted the fields —
+        // the fallback runs against plain text which is often empty for Glassdoor,
+        // producing misleading "No link found" warnings.
+        const notes: string[] = card.link ? [] : fallback.notes;
 
         const scored = score_risk({ source, title, company, location, pay: card.pay, link });
         const item: job_item = {

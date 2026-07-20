@@ -183,8 +183,22 @@ const KNOWN_JOB_HOSTS = [
   "linkedin.com",
   "lnkd.in",
   "glassdoor.com",
+  "glassdoor.ca",
+  "glassdoor.co.uk",
+  "glassdoor.com.au",
+  "glassdoor.co.in",
+  "glassdoor.de",
+  "glassdoor.fr",
+  "glassdoor.com.br",
+  "glassdoor.com.mx",
+  "glassdoor.sg",
+  "glassdoor.com.hk",
   "ziprecruiter.com",
   "monster.com",
+  "monster.co.uk",
+  "monster.ca",
+  "monster.de",
+  "monster.fr",
 ];
 
 /**
