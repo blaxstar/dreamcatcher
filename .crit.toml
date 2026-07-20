@@ -5,6 +5,9 @@
 # Commands run in the repo root on the exact commit being reviewed.
 # Env available: CRIT_CL_ID, CRIT_COMMIT_SHA, CRIT_REPO, CRIT_TARGET_BRANCH
 
+public_remote = "https://github.com/blaxstar/dreamcatcher.git"
+public_branch = "main"
+
 [[tool]]
 name    = "lint"
 command = "npm ci --prefer-offline --silent && npx biome check . && npx stylelint '**/*.{css,scss}' --ignore-path .gitignore"
