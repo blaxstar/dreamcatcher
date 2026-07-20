@@ -1302,6 +1302,26 @@ a:hover {
   text-align: center;
 }
 
+button.stat-card-clickable {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  appearance: none;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+button.stat-card-clickable:hover {
+  border-color: var(--accent);
+  background: var(--s2);
+}
+
+button.stat-card-clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;

@@ -126,7 +126,7 @@ async function load_jobs(root: HTMLElement, reload: boolean): Promise<void> {
 
     if (reload) sessionStorage.setItem(SYNCED_KEY, "1");
 
-    render_stats(stats_bar, data.stats);
+    render_stats(stats_bar, data.stats, root, data);
     render_source_filter(data);
     render_controls(root, data);
     render_tabs(root, data);
@@ -139,25 +139,37 @@ async function load_jobs(root: HTMLElement, reload: boolean): Promise<void> {
   }
 }
 
-function render_stats(el: HTMLElement, stats: JobsResponse["stats"]): void {
-  el.innerHTML = `
-    <div class="stat-card">
-      <div class="stat-value">${stats.total}</div>
-      <div class="stat-label">Total</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">${stats.pending}</div>
-      <div class="stat-label">Pending</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" style="color:var(--green)">${stats.applied}</div>
-      <div class="stat-label">Applied</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" style="color:var(--t2)">${stats.skipped}</div>
-      <div class="stat-label">Skipped</div>
-    </div>
-  `;
+function render_stats(
+  el: HTMLElement,
+  stats: JobsResponse["stats"],
+  root: HTMLElement,
+  data: JobsResponse,
+): void {
+  const cards: { value: number; label: string; tab: string; style?: string }[] = [
+    { value: stats.total, label: "Total", tab: "all" },
+    { value: stats.pending, label: "Pending", tab: "top" },
+    { value: stats.applied, label: "Applied", tab: "applied", style: "color:var(--green)" },
+    { value: stats.skipped, label: "Skipped", tab: "skipped", style: "color:var(--t2)" },
+  ];
+
+  el.innerHTML = "";
+  for (const c of cards) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "stat-card stat-card-clickable";
+    card.setAttribute("aria-label", `${c.value} ${c.label} — show ${c.label.toLowerCase()} jobs`);
+    card.innerHTML = `
+      <div class="stat-value"${c.style ? ` style="${c.style}"` : ""}>${c.value}</div>
+      <div class="stat-label">${c.label}</div>
+    `;
+    card.addEventListener("click", () => {
+      active_tab = c.tab;
+      const list = document.getElementById("job-list")!;
+      render_tabs(root, data);
+      render_job_list(list, data);
+    });
+    el.appendChild(card);
+  }
 }
 
 function render_tabs(root: HTMLElement, data: JobsResponse): void {
@@ -392,10 +404,11 @@ function render_job_list(el: HTMLElement, data: JobsResponse): void {
   const on_update = () => {
     // Re-fetch to update stats and lists
     const stats_bar = document.getElementById("stats-bar")!;
+    const root = el.closest("#job-list")?.parentElement || document.body;
     api<JobsResponse>("GET", "/api/jobs").then((fresh) => {
       data.jobs = fresh.jobs;
       data.stats = fresh.stats;
-      render_stats(stats_bar, fresh.stats);
+      render_stats(stats_bar, fresh.stats, root as HTMLElement, data);
       render_job_list(el, data);
     });
   };
