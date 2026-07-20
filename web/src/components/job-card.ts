@@ -74,7 +74,7 @@ function render_actions(container: Element, job: Job, on_update?: () => void): v
   container.innerHTML = "";
 
   if (job.status === "pending") {
-    const apply_btn = make_btn("Applied", "btn-success btn-sm", async () => {
+    const apply_btn = make_btn("Mark as applied", "btn-success btn-sm", async () => {
       await set_status(job, "applied");
       on_update?.();
     });
