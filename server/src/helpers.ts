@@ -56,6 +56,71 @@ export function extract_linkedin_job_cards(
   return out;
 }
 
+export function extract_glassdoor_job_cards(html: string): Array<{
+  title?: string;
+  company?: string;
+  location?: string;
+  pay?: string;
+  link?: string;
+}> {
+  const out: Array<{
+    title?: string;
+    company?: string;
+    location?: string;
+    pay?: string;
+    link?: string;
+  }> = [];
+
+  // Each job card lives in a table with data-sacrifice="true"
+  const card_chunks = html.split(/data-sacrifice="true"/i).slice(1);
+
+  for (const chunk of card_chunks) {
+    // Job link: the main <a> pointing to glassdoor job listing
+    const link_match = chunk.match(
+      /href="(https:\/\/www\.glassdoor\.[^"]*\/(?:partner\/)?jobListing\.htm[^"]*)"/i,
+    );
+    const link = link_match ? html_unescape(link_match[1]) : undefined;
+
+    // Title: the bold 14px text inside the card link
+    const title_match = chunk.match(
+      /<p\s[^>]*font-size:\s*14px[^>]*font-weight:\s*600[^>]*>([\s\S]*?)<\/p>/i,
+    );
+    const title = title_match ? html_unescape(strip_html_tags(title_match[1])) : undefined;
+
+    // Company: the 12px normal-weight span that precedes the title. Glassdoor
+    // puts it in a word-break span with font-size:12px;font-weight:400 inside
+    // the card's first row alongside the optional avatar.
+    const company_match = chunk.match(
+      /<span\s[^>]*font-size:\s*12px[^>]*font-weight:\s*400[^>]*word-break:\s*break-word[^>]*>([\s\S]*?)<\/span>/i,
+    );
+    const company = company_match ? html_unescape(strip_html_tags(company_match[1])) : undefined;
+
+    // Location & pay: the 12px paragraphs with margin-top:4px after the title.
+    const field_re = /<p\s[^>]*font-size:\s*12px[^>]*margin-top:\s*4px[^>]*>([\s\S]*?)<\/p>/gi;
+    const fields: string[] = [];
+    for (const fm of chunk.matchAll(field_re)) {
+      fields.push(html_unescape(strip_html_tags(fm[1])));
+    }
+
+    let location: string | undefined;
+    let pay: string | undefined;
+    for (const f of fields) {
+      if (!f) continue;
+      if (!pay && /(?:US\$|CA\$|\$)\s*[\d,]+/i.test(f)) {
+        pay = f;
+      } else if (!location) {
+        location = f;
+      }
+    }
+
+    if (title || link) {
+      out.push({ title, company, location, pay, link });
+    }
+  }
+
+  return out;
+}
+
 export function extract_indeed_job_cards(html: string): Array<{
   title?: string;
   company?: string;

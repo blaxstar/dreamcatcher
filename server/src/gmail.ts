@@ -1,6 +1,10 @@
 import { google } from "googleapis";
 import type { OAuth2Client } from "googleapis-common";
-import { extract_indeed_job_cards, extract_linkedin_job_cards } from "./helpers.js";
+import {
+  extract_glassdoor_job_cards,
+  extract_indeed_job_cards,
+  extract_linkedin_job_cards,
+} from "./helpers.js";
 import {
   extract_job_fields,
   guess_source,
@@ -106,6 +110,39 @@ export async function fetch_jobs_from_gmail(
         const title = card.title || fallback.title;
         const company = split.company || fallback.company;
         const location = split.location || fallback.location;
+        const link = card.link || fallback.link;
+        const notes = fallback.notes;
+
+        const scored = score_risk({ source, title, company, location, pay: card.pay, link });
+        const item: job_item = {
+          source,
+          email_id: id,
+          received_iso: internal_date,
+          title,
+          company,
+          location,
+          link,
+          pay: card.pay,
+          risk_score: scored.risk_score,
+          risk_level: scored.risk_level,
+          notes: [...notes, ...scored.notes],
+        };
+        const key = job_key(item);
+        if (!seen_keys.has(key)) {
+          jobs.push(item);
+          seen_keys.add(key);
+        }
+      }
+      if (cards.length > 0) continue;
+    }
+
+    if (body_html && source === "glassdoor") {
+      const cards = extract_glassdoor_job_cards(body_html);
+      for (const card of cards) {
+        const fallback = extract_job_fields(subject, body_text);
+        const title = card.title || fallback.title;
+        const company = card.company || fallback.company;
+        const location = card.location || fallback.location;
         const link = card.link || fallback.link;
         const notes = fallback.notes;
 
