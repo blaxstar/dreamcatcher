@@ -27,7 +27,8 @@ export function render_login(root: HTMLElement): void {
                 company, and link, then throws the email away. Nothing you wrote or received
                 is stored.</li>
               <li><strong>No human reads anything.</strong> Not me, not anyone.</li>
-              <li><strong>You can check for yourself.</strong> The whole thing is open source,
+              <li><strong>You can check for yourself.</strong> The whole thing is
+                <a href="https://github.com/blaxstar/dreamcatcher" target="_blank" rel="noopener">open source</a>,
                 and you can download or delete everything it knows about you at any time.</li>
             </ul>
           </details>
